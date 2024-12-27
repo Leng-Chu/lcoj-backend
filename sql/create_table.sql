@@ -25,6 +25,7 @@ create table if not exists question
     content     text                               null comment '内容',
     tags        varchar(1024)                      null comment '标签列表（json 数组）',
     answer      text                               null comment '题目标程',
+    language    varchar(20)                        not null comment '标程语言',
     submitNum   int      default 0                 not null comment '题目提交数',
     acceptedNum int      default 0                 not null comment '题目通过数',
     judgeCase   text                               null comment '判题用例（json 数组）',

@@ -42,6 +42,10 @@ public class Question implements Serializable {
     @TableField("answer")
     private String answer;
 
+    @ApiModelProperty(value = "标程语言")
+    @TableField("language")
+    private String language;
+
     @ApiModelProperty(value = "题目提交数")
     @TableField("submitNum")
     private Integer submitNum;
