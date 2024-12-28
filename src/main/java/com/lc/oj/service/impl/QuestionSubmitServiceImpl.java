@@ -65,11 +65,13 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
         // 是否已提交题目
-        long userId = loginUser.getId();
         // 每个用户串行提交题目
         QuestionSubmit questionSubmit = new QuestionSubmit();
-        questionSubmit.setUserId(userId);
+        questionSubmit.setUserId(loginUser.getId());
+        questionSubmit.setUserName(loginUser.getUserName());
         questionSubmit.setQuestionId(questionId);
+        questionSubmit.setQuestionTitle(question.getTitle());
+        questionSubmit.setQuestionNum(question.getNum());
         questionSubmit.setCode(questionSubmitAddRequest.getCode());
         questionSubmit.setLanguage(language);
         // 设置初始状态
@@ -102,15 +104,17 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         }
         String language = questionSubmitQueryRequest.getLanguage();
         Integer status = questionSubmitQueryRequest.getStatus();
-        Long questionId = questionSubmitQueryRequest.getQuestionId();
-        Long userId = questionSubmitQueryRequest.getUserId();
+        Long questionNum = questionSubmitQueryRequest.getQuestionNum();
+        String questionTitle = questionSubmitQueryRequest.getQuestionTitle();
+        String userName = questionSubmitQueryRequest.getUserName();
         String sortField = questionSubmitQueryRequest.getSortField();
         String sortOrder = questionSubmitQueryRequest.getSortOrder();
 
         // 拼接查询条件
         queryWrapper.eq(StringUtils.isNotBlank(language), "language", language);
-        queryWrapper.eq(ObjectUtils.isNotEmpty(userId), "userId", userId);
-        queryWrapper.eq(ObjectUtils.isNotEmpty(questionId), "questionId", questionId);
+        queryWrapper.eq(StringUtils.isNotBlank(userName), "userName", userName);
+        queryWrapper.eq(StringUtils.isNotBlank(questionTitle), "questionTitle", questionTitle);
+        queryWrapper.eq(ObjectUtils.isNotEmpty(questionNum), "questionNum", questionNum);
         queryWrapper.eq(QuestionSubmitStatusEnum.getEnumByValue(status) != null, "status", status);
         queryWrapper.eq("isDelete", false);
         queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),

@@ -42,13 +42,25 @@ public class QuestionSubmit implements Serializable {
     @TableField("status")
     private Integer status;
 
-    @ApiModelProperty(value = "题目 id")
+    @ApiModelProperty(value = "题目id")
     @TableField("questionId")
     private Long questionId;
 
-    @ApiModelProperty(value = "创建用户 id")
+    @ApiModelProperty(value = "题号")
+    @TableField("questionNum")
+    private Long questionNum;
+
+    @ApiModelProperty(value = "题目标题")
+    @TableField("questionTitle")
+    private String questionTitle;
+
+    @ApiModelProperty(value = "创建用户id")
     @TableField("userId")
     private Long userId;
+
+    @ApiModelProperty(value = "创建用户昵称")
+    @TableField("userName")
+    private String userName;
 
     @ApiModelProperty(value = "创建时间")
     @TableField("createTime")

@@ -37,13 +37,17 @@ public class QuestionSubmitVO implements Serializable {
      */
     private Integer status;
     /**
-     * 题目 id
+     * 题号
      */
-    private Long questionId;
+    private Long questionNum;
     /**
-     * 创建用户 id
+     * 题目标题
      */
-    private Long userId;
+    private String questionTitle;
+    /**
+     * 提交者
+     */
+    private String userName;
     /**
      * 创建时间
      */
@@ -52,14 +56,6 @@ public class QuestionSubmitVO implements Serializable {
      * 更新时间
      */
     private LocalDateTime updateTime;
-    /**
-     * 提交用户信息
-     */
-    private UserVO userVO;
-    /**
-     * 对应题目信息
-     */
-    private QuestionVO questionVO;
 
     /**
      * 包装类转对象

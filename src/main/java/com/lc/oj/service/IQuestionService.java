@@ -5,9 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lc.oj.model.dto.question.QuestionQueryRequest;
 import com.lc.oj.model.entity.Question;
-import com.lc.oj.model.vo.QuestionVO;
-
-import javax.servlet.http.HttpServletRequest;
+import com.lc.oj.model.vo.QuestionListVO;
 
 /**
  * <p>
@@ -35,19 +33,10 @@ public interface IQuestionService extends IService<Question> {
     QueryWrapper<Question> getQueryWrapper(QuestionQueryRequest questionQueryRequest);
 
     /**
-     * 获取题目封装
-     *
-     * @param question
-     * @param request
-     * @return
-     */
-    QuestionVO getQuestionVO(Question question, HttpServletRequest request);
-
-    /**
      * 分页获取题目封装
      *
      * @param questionPage
      * @return
      */
-    Page<QuestionVO> getQuestionVOPage(Page<Question> questionPage);
+    Page<QuestionListVO> getQuestionVOPage(Page<Question> questionPage);
 }

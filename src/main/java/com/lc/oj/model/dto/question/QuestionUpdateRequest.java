@@ -18,6 +18,10 @@ public class QuestionUpdateRequest implements Serializable {
      */
     private Long id;
     /**
+     * 题号
+     */
+    private Long num;
+    /**
      * 标题
      */
     private String title;
@@ -38,9 +42,13 @@ public class QuestionUpdateRequest implements Serializable {
      */
     private String language;
     /**
+     * 样例
+     */
+    private List<SampleCase> sampleCase;
+    /**
      * 判题用例
      */
-    private List<JudgeCase> judgeCase;
+    private String judgeCase;
     /**
      * 判题配置
      */

@@ -2,12 +2,13 @@ package com.lc.oj.model.vo;
 
 import cn.hutool.json.JSONUtil;
 import com.lc.oj.model.dto.question.JudgeConfig;
+import com.lc.oj.model.dto.question.SampleCase;
 import com.lc.oj.model.entity.Question;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -22,6 +23,10 @@ public class QuestionVO implements Serializable {
      */
     private Long id;
     /**
+     * 题号
+     */
+    private Long num;
+    /**
      * 标题
      */
     private String title;
@@ -34,33 +39,13 @@ public class QuestionVO implements Serializable {
      */
     private List<String> tags;
     /**
-     * 题目提交数
-     */
-    private Integer submitNum;
-    /**
-     * 题目通过数
-     */
-    private Integer acceptedNum;
-    /**
      * 判题配置（json 对象）
      */
     private JudgeConfig judgeConfig;
     /**
-     * 创建用户 id
+     * 样例
      */
-    private Long userId;
-    /**
-     * 创建用户昵称
-     */
-    private String userName;
-    /**
-     * 创建时间
-     */
-    private LocalDateTime createTime;
-    /**
-     * 更新时间
-     */
-    private LocalDateTime updateTime;
+    private List<SampleCase> sampleCase;
 
     /**
      * 包装类转对象
@@ -82,6 +67,10 @@ public class QuestionVO implements Serializable {
         if (voJudgeConfig != null) {
             question.setJudgeConfig(JSONUtil.toJsonStr(voJudgeConfig));
         }
+        List<SampleCase> sampleCase = questionVO.getSampleCase();
+        if (sampleCase != null) {
+            question.setSampleCase(JSONUtil.toJsonStr(sampleCase));
+        }
         return question;
     }
 
@@ -101,6 +90,12 @@ public class QuestionVO implements Serializable {
         questionVO.setTags(tagList);
         String judgeConfigStr = question.getJudgeConfig();
         questionVO.setJudgeConfig(JSONUtil.toBean(judgeConfigStr, JudgeConfig.class));
+        List<String> sampleCaseStr = JSONUtil.toList(question.getSampleCase(), String.class);
+        List<SampleCase> sampleCase = new ArrayList<>();
+        for (String s : sampleCaseStr) {
+            sampleCase.add(JSONUtil.toBean(s, SampleCase.class));
+        }
+        questionVO.setSampleCase(sampleCase);
         return questionVO;
     }
 }

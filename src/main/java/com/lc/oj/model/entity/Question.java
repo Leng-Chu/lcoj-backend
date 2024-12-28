@@ -26,6 +26,10 @@ public class Question implements Serializable {
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
+    @ApiModelProperty(value = "题号")
+    @TableField("num")
+    private Long num;
+
     @ApiModelProperty(value = "标题")
     @TableField("title")
     private String title;
@@ -54,7 +58,11 @@ public class Question implements Serializable {
     @TableField("acceptedNum")
     private Integer acceptedNum;
 
-    @ApiModelProperty(value = "判题用例（json 数组）")
+    @ApiModelProperty(value = "样例（json 数组）")
+    @TableField("sampleCase")
+    private String sampleCase;
+
+    @ApiModelProperty(value = "判题用例（url）")
     @TableField("judgeCase")
     private String judgeCase;
 
@@ -62,9 +70,13 @@ public class Question implements Serializable {
     @TableField("judgeConfig")
     private String judgeConfig;
 
-    @ApiModelProperty(value = "创建用户 id")
+    @ApiModelProperty(value = "创建用户id")
     @TableField("userId")
     private Long userId;
+
+    @ApiModelProperty(value = "创建用户昵称")
+    @TableField("userName")
+    private String userName;
 
     @ApiModelProperty(value = "创建时间")
     @TableField("createTime")

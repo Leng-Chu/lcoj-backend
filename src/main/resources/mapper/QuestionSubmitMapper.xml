@@ -9,17 +9,17 @@
         <result property="judgeInfo" column="judgeInfo" jdbcType="VARCHAR"/>
         <result property="status" column="status" jdbcType="INTEGER"/>
         <result property="questionId" column="questionId" jdbcType="BIGINT"/>
+        <result property="questionNum" column="questionNum" jdbcType="BIGINT"/>
+        <result property="questionTitle" column="questionTitle" jdbcType="VARCHAR"/>
         <result property="userId" column="userId" jdbcType="BIGINT"/>
+        <result property="userName" column="userName" jdbcType="VARCHAR"/>
         <result property="createTime" column="createTime" jdbcType="TIMESTAMP"/>
         <result property="updateTime" column="updateTime" jdbcType="TIMESTAMP"/>
         <result property="isDelete" column="isDelete" jdbcType="TINYINT"/>
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,language,code,
-        judgeInfo,status,questionId,
-        userId,createTime,updateTime,
-        isDelete
+        id, language, code, judgeInfo, status, questionId, questionNum, questionTitle, userId, userName, createTime, updateTime, isDelete
     </sql>
 
 </mapper>

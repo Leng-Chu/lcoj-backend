@@ -14,6 +14,7 @@ import com.lc.oj.exception.ThrowUtils;
 import com.lc.oj.model.dto.question.*;
 import com.lc.oj.model.entity.Question;
 import com.lc.oj.model.entity.User;
+import com.lc.oj.model.vo.QuestionListVO;
 import com.lc.oj.model.vo.QuestionVO;
 import com.lc.oj.service.IQuestionService;
 import com.lc.oj.service.IUserService;
@@ -61,9 +62,9 @@ public class QuestionController {
         if (tags != null) {
             question.setTags(GSON.toJson(tags));
         }
-        List<JudgeCase> judgeCase = questionAddRequest.getJudgeCase();
-        if (judgeCase != null) {
-            question.setJudgeCase(GSON.toJson(judgeCase));
+        List<SampleCase> sampleCase = questionAddRequest.getSampleCase();
+        if (sampleCase != null) {
+            question.setSampleCase(GSON.toJson(sampleCase));
         }
         JudgeConfig judgeConfig = questionAddRequest.getJudgeConfig();
         if (judgeConfig != null) {
@@ -72,6 +73,7 @@ public class QuestionController {
         questionService.validQuestion(question, true);
         User loginUser = userService.getLoginUser(request);
         question.setUserId(loginUser.getId());
+        question.setUserName(loginUser.getUserName());
         boolean result = questionService.save(question);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         long newQuestionId = question.getId();
@@ -121,9 +123,9 @@ public class QuestionController {
         if (tags != null) {
             question.setTags(GSON.toJson(tags));
         }
-        List<JudgeCase> judgeCase = questionUpdateRequest.getJudgeCase();
-        if (judgeCase != null) {
-            question.setJudgeCase(GSON.toJson(judgeCase));
+        List<SampleCase> sampleCase = questionUpdateRequest.getSampleCase();
+        if (sampleCase != null) {
+            question.setSampleCase(GSON.toJson(sampleCase));
         }
         JudgeConfig judgeConfig = questionUpdateRequest.getJudgeConfig();
         if (judgeConfig != null) {
@@ -163,13 +165,13 @@ public class QuestionController {
     }
 
     /**
-     * 根据 id 获取（脱敏）
+     * 根据 id 获取题目信息
      *
      * @param id
      * @return
      */
     @GetMapping("/get/vo")
-    public BaseResponse<QuestionVO> getQuestionVOById(long id, HttpServletRequest request) {
+    public BaseResponse<QuestionVO> getQuestionVOById(long id) {
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -177,17 +179,17 @@ public class QuestionController {
         if (question == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
-        return ResultUtils.success(questionService.getQuestionVO(question, request));
+        return ResultUtils.success(QuestionVO.objToVo(question));
     }
 
     /**
-     * 分页获取列表（封装类）
+     * 分页获取题目列表
      *
      * @param questionQueryRequest
      * @return
      */
     @PostMapping("/list/page/vo")
-    public BaseResponse<Page<QuestionVO>> listQuestionVOByPage(@RequestBody QuestionQueryRequest questionQueryRequest) {
+    public BaseResponse<Page<QuestionListVO>> listQuestionVOByPage(@RequestBody QuestionQueryRequest questionQueryRequest) {
         long current = questionQueryRequest.getCurrent();
         long size = questionQueryRequest.getPageSize();
         // 限制爬虫
