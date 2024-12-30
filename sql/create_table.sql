@@ -21,7 +21,7 @@ create table if not exists user
 create table if not exists question
 (
     id          bigint                             comment 'id' primary key,
-    num         bigint auto_increment              not null comment '题号',
+    num         bigint                             not null comment '题号',
     title       varchar(512)                       not null comment '标题',
     content     text                               not null comment '内容',
     tags        varchar(1024)                      null comment '标签列表（json 数组）',
@@ -30,7 +30,6 @@ create table if not exists question
     submitNum   int      default 0                 not null comment '题目提交数',
     acceptedNum int      default 0                 not null comment '题目通过数',
     sampleCase  text                               null comment '样例（json 数组）',
-    judgeCase   varchar(255)                       null comment '判题用例（url）',
     judgeConfig text                               null comment '判题配置（json 对象）',
     userId      bigint                             not null comment '创建用户id',
     userName    varchar(256)                       not null comment '创建用户昵称',
@@ -38,7 +37,7 @@ create table if not exists question
     updateTime  datetime default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
     isDelete    tinyint  default 0                 not null comment '是否删除',
     index idx_userId (userId),
-    unique idx_num (num)
+    index idx_num (num)
 ) comment '题目' collate = utf8mb4_unicode_ci;
 
 -- 题目提交表

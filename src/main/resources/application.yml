@@ -28,6 +28,10 @@ spring:
     password: 123456
   freemarker:
     checkTemplateLocation: false
+  servlet:
+    multipart:
+      max-file-size: 104857600
+      max-request-size: 104857600
 server:
   address: 0.0.0.0
   port: 8101
@@ -56,3 +60,6 @@ knife4j:
         api-rule: package
         api-rule-resources:
           - com.lc.oj.controller
+# lcoj配置
+lcoj:
+  data-path: "xxx"

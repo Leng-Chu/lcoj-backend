@@ -62,10 +62,6 @@ public class Question implements Serializable {
     @TableField("sampleCase")
     private String sampleCase;
 
-    @ApiModelProperty(value = "判题用例（url）")
-    @TableField("judgeCase")
-    private String judgeCase;
-
     @ApiModelProperty(value = "判题配置（json 对象）")
     @TableField("judgeConfig")
     private String judgeConfig;

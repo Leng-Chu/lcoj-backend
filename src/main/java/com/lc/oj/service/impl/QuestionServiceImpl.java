@@ -49,8 +49,8 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         if (StringUtils.isAnyBlank(title, content)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "标题和题目描述不能为空");
         }
-        if (!add && num == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "更新题目时题号不能为空");
+        if (num == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "题号不能为空");
         }
         // 有参数则校验
         if (StringUtils.isNotBlank(title) && title.length() > 80) {
@@ -66,17 +66,19 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "样例过长");
         }
         //如果num不为空，判断是否重复
-        if (num != null) {
-            //题号必须>0
-            if (num <= 0) {
-                throw new BusinessException(ErrorCode.PARAMS_ERROR, "题号必须大于0");
-            }
-            QueryWrapper<Question> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("num", num);
-            Question questionInDB = getOne(queryWrapper);
-            if (questionInDB != null && !questionInDB.getId().equals(question.getId())) {
-                throw new BusinessException(ErrorCode.PARAMS_ERROR, "题号重复");
-            }
+        if (num <= 0 || num>100000) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "题号应在1~100000范围内");
+        }
+        //判断题号是否重复，已逻辑删除的题目不算
+        QueryWrapper<Question> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("num", num);
+        if (!add) {
+            queryWrapper.ne("id", question.getId());
+        }
+        queryWrapper.eq("isDelete", false);
+        List<Question> questions = this.list(queryWrapper);
+        if (questions != null && !questions.isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "题号重复");
         }
     }
 
@@ -125,5 +127,15 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         List<QuestionListVO> questionVOList = questionList.stream().map(QuestionListVO::objToVo).collect(Collectors.toList());
         questionVOPage.setRecords(questionVOList);
         return questionVOPage;
+    }
+
+    @Override
+    public Long getNextNum() {
+        QueryWrapper<Question> queryWrapper = new QueryWrapper<>();
+        //找未逻辑删除的num最大值
+        queryWrapper.eq("isDelete", false);
+        queryWrapper.select("MAX(num) as num");
+        Question question = this.getOne(queryWrapper);
+        return (question != null && question.getNum() != null) ? question.getNum() + 1 : 1L;
     }
 }

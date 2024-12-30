@@ -18,13 +18,18 @@ import com.lc.oj.model.vo.QuestionListVO;
 import com.lc.oj.model.vo.QuestionVO;
 import com.lc.oj.service.IQuestionService;
 import com.lc.oj.service.IUserService;
+import com.lc.oj.utils.FileUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.io.File;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * <p>
@@ -43,6 +48,8 @@ public class QuestionController {
     private IQuestionService questionService;
     @Resource
     private IUserService userService;
+    @Value("${lcoj.data-path}")
+    private String dataPath;
 
     /**
      * 创建
@@ -75,8 +82,16 @@ public class QuestionController {
         question.setUserId(loginUser.getId());
         question.setUserName(loginUser.getUserName());
         boolean result = questionService.save(question);
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "插入数据库失败");
         long newQuestionId = question.getId();
+        File dir = new File(dataPath + question.getNum());
+        // 创建文件夹
+        if (!dir.exists()) {
+            boolean flag = dir.mkdirs();
+            if (!flag) {
+                throw new BusinessException(ErrorCode.OPERATION_ERROR);
+            }
+        }
         return ResultUtils.success(newQuestionId);
     }
 
@@ -87,6 +102,7 @@ public class QuestionController {
      * @param request
      * @return
      */
+    @Transactional
     @PostMapping("/delete")
     public BaseResponse<Boolean> deleteQuestion(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
@@ -101,7 +117,11 @@ public class QuestionController {
         if (!oldQuestion.getUserId().equals(user.getId()) && !userService.isAdmin(request)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
+        // 删除题目
         boolean b = questionService.removeById(id);
+        // 删除数据文件夹
+        File dir = new File(dataPath + oldQuestion.getNum());
+        FileUtils.deleteDirectory(dir);
         return ResultUtils.success(b);
     }
 
@@ -138,6 +158,17 @@ public class QuestionController {
         Question oldQuestion = questionService.getById(id);
         ThrowUtils.throwIf(oldQuestion == null, ErrorCode.NOT_FOUND_ERROR);
         boolean result = questionService.updateById(question);
+        if(!Objects.equals(oldQuestion.getNum(), question.getNum())){
+            //将旧文件夹改名为新文件夹
+            File oldDir = new File(dataPath + oldQuestion.getNum());
+            File newDir = new File(dataPath + question.getNum());
+            if (oldDir.exists()) {
+                boolean flag = oldDir.renameTo(newDir);
+                if (!flag) {
+                    throw new BusinessException(ErrorCode.OPERATION_ERROR);
+                }
+            }
+        }
         return ResultUtils.success(result);
     }
 
@@ -197,5 +228,16 @@ public class QuestionController {
         Page<Question> questionPage = questionService.page(new Page<>(current, size),
                 questionService.getQueryWrapper(questionQueryRequest));
         return ResultUtils.success(questionService.getQuestionVOPage(questionPage));
+    }
+
+    /**
+     * 获取question表中递增字段num的下一个值
+     *
+     * @return
+     */
+    @GetMapping("/next-num")
+    public BaseResponse<Long> getNextNum() {
+        Long nextNum = questionService.getNextNum();
+        return ResultUtils.success(nextNum);
     }
 }

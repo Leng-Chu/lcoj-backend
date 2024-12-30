@@ -39,4 +39,11 @@ public interface IQuestionService extends IService<Question> {
      * @return
      */
     Page<QuestionListVO> getQuestionVOPage(Page<Question> questionPage);
+
+    /**
+     * 获取question表中递增字段num的下一个值
+     *
+     * @return
+     */
+    Long getNextNum();
 }
