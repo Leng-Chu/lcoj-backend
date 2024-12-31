@@ -24,6 +24,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.List;
@@ -58,6 +59,7 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
      * @return
      */
     @Override
+    @Transactional
     public long doQuestionSubmit(QuestionSubmitAddRequest questionSubmitAddRequest, User loginUser) {
         // 校验编程语言是否合法
         String language = questionSubmitAddRequest.getLanguage();
@@ -71,6 +73,8 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         if (question == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
+        question.setSubmitNum(question.getSubmitNum() + 1);
+        questionService.updateById(question);
         // 是否已提交题目
         // 每个用户串行提交题目
         QuestionSubmit questionSubmit = new QuestionSubmit();

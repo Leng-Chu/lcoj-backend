@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.lc.oj.model.dto.question.QuestionQueryRequest;
 import com.lc.oj.model.entity.Question;
 import com.lc.oj.model.vo.QuestionListVO;
+import com.lc.oj.model.vo.QuestionManageVO;
 
 /**
  * <p>
@@ -33,12 +34,20 @@ public interface IQuestionService extends IService<Question> {
     QueryWrapper<Question> getQueryWrapper(QuestionQueryRequest questionQueryRequest);
 
     /**
-     * 分页获取题目封装
+     * 分页获取题目列表（做题端）
      *
      * @param questionPage
      * @return
      */
     Page<QuestionListVO> getQuestionVOPage(Page<Question> questionPage);
+
+    /**
+     * 分页获取题目列表（管理端）
+     *
+     * @param questionPage
+     * @return
+     */
+    Page<QuestionManageVO> getQuestionManageVOPage(Page<Question> questionPage);
 
     /**
      * 获取question表中递增字段num的下一个值

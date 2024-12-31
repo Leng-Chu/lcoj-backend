@@ -10,6 +10,7 @@ import com.lc.oj.mapper.QuestionMapper;
 import com.lc.oj.model.dto.question.QuestionQueryRequest;
 import com.lc.oj.model.entity.Question;
 import com.lc.oj.model.vo.QuestionListVO;
+import com.lc.oj.model.vo.QuestionManageVO;
 import com.lc.oj.service.IQuestionService;
 import com.lc.oj.utils.SqlUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -32,6 +33,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
 
     /**
      * 校验题目是否合法
+     *
      * @param question
      * @param add
      */
@@ -66,7 +68,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "样例过长");
         }
         //如果num不为空，判断是否重复
-        if (num <= 0 || num>100000) {
+        if (num <= 0 || num > 100000) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "题号应在1~100000范围内");
         }
         //判断题号是否重复，已逻辑删除的题目不算
@@ -119,14 +121,27 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     @Override
     public Page<QuestionListVO> getQuestionVOPage(Page<Question> questionPage) {
         List<Question> questionList = questionPage.getRecords();
-        Page<QuestionListVO> questionVOPage = new Page<>(questionPage.getCurrent(), questionPage.getSize(), questionPage.getTotal());
-        if (questionList==null || questionList.isEmpty()) {
-            return questionVOPage;
+        Page<QuestionListVO> questionListVOPage = new Page<>(questionPage.getCurrent(), questionPage.getSize(), questionPage.getTotal());
+        if (questionList == null || questionList.isEmpty()) {
+            return questionListVOPage;
         }
         // 填充信息
         List<QuestionListVO> questionVOList = questionList.stream().map(QuestionListVO::objToVo).collect(Collectors.toList());
-        questionVOPage.setRecords(questionVOList);
-        return questionVOPage;
+        questionListVOPage.setRecords(questionVOList);
+        return questionListVOPage;
+    }
+
+    @Override
+    public Page<QuestionManageVO> getQuestionManageVOPage(Page<Question> questionPage) {
+        List<Question> questionList = questionPage.getRecords();
+        Page<QuestionManageVO> questionManageVOPage = new Page<>(questionPage.getCurrent(), questionPage.getSize(), questionPage.getTotal());
+        if (questionList == null || questionList.isEmpty()) {
+            return questionManageVOPage;
+        }
+        // 填充信息
+        List<QuestionManageVO> questionVOList = questionList.stream().map(QuestionManageVO::objToVo).collect(Collectors.toList());
+        questionManageVOPage.setRecords(questionVOList);
+        return questionManageVOPage;
     }
 
     @Override

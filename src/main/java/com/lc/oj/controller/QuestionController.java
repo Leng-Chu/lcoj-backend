@@ -9,6 +9,7 @@ import com.lc.oj.common.BaseResponse;
 import com.lc.oj.common.DeleteRequest;
 import com.lc.oj.common.ErrorCode;
 import com.lc.oj.common.ResultUtils;
+import com.lc.oj.constant.RedisConstant;
 import com.lc.oj.constant.UserConstant;
 import com.lc.oj.exception.BusinessException;
 import com.lc.oj.exception.ThrowUtils;
@@ -16,7 +17,9 @@ import com.lc.oj.model.dto.question.*;
 import com.lc.oj.model.entity.Question;
 import com.lc.oj.model.entity.QuestionSubmit;
 import com.lc.oj.model.entity.User;
+import com.lc.oj.model.enums.QuestionAcceptEnum;
 import com.lc.oj.model.vo.QuestionListVO;
+import com.lc.oj.model.vo.QuestionManageVO;
 import com.lc.oj.model.vo.QuestionVO;
 import com.lc.oj.service.IQuestionService;
 import com.lc.oj.service.IQuestionSubmitService;
@@ -25,6 +28,7 @@ import com.lc.oj.utils.FileUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -53,6 +57,8 @@ public class QuestionController {
     private IQuestionSubmitService questionSubmitService;
     @Resource
     private IUserService userService;
+    @Resource
+    private StringRedisTemplate template;
     @Value("${lcoj.data-path}")
     private String dataPath;
 
@@ -170,19 +176,19 @@ public class QuestionController {
         // 改题目表
         boolean result = questionService.updateById(question);
         // 在questionsubmit表里查询questionid相同的字段，如果num或title改了，同步更新
-        if(!Objects.equals(oldQuestion.getNum(), question.getNum()) || !Objects.equals(oldQuestion.getTitle(), question.getTitle())){
+        if (!Objects.equals(oldQuestion.getNum(), question.getNum()) || !Objects.equals(oldQuestion.getTitle(), question.getTitle())) {
             //根据questionId查询questionSubmit表中的数据
             QueryWrapper<QuestionSubmit> queryWrapper = new QueryWrapper<>();
             queryWrapper.eq("questionId", id);
             List<QuestionSubmit> questionSubmitList = questionSubmitService.list(queryWrapper);
-            for(QuestionSubmit questionSubmit : questionSubmitList){
+            for (QuestionSubmit questionSubmit : questionSubmitList) {
                 questionSubmit.setQuestionNum(question.getNum());
                 questionSubmit.setQuestionTitle(question.getTitle());
                 questionSubmitService.updateById(questionSubmit);
             }
         }
         //将旧文件夹改名为新文件夹
-        if(!Objects.equals(oldQuestion.getNum(), question.getNum())){
+        if (!Objects.equals(oldQuestion.getNum(), question.getNum())) {
             File oldDir = new File(dataPath + oldQuestion.getNum());
             File newDir = new File(dataPath + question.getNum());
             if (oldDir.exists()) {
@@ -202,7 +208,7 @@ public class QuestionController {
      * @return
      */
     @GetMapping("/get")
-    public BaseResponse<Question> getQuestionById(long id, HttpServletRequest request) {
+    public BaseResponse<Question> getQuestionById(Long id, HttpServletRequest request) {
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -225,7 +231,7 @@ public class QuestionController {
      * @return
      */
     @GetMapping("/get/vo")
-    public BaseResponse<QuestionVO> getQuestionVOById(long id) {
+    public BaseResponse<QuestionVO> getQuestionVOById(Long id, HttpServletRequest request) {
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -233,24 +239,66 @@ public class QuestionController {
         if (question == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
-        return ResultUtils.success(QuestionVO.objToVo(question));
+        QuestionVO questionVO = QuestionVO.objToVo(question);
+        final User loginUser = userService.getLoginUser(request);
+        String acceptKey = RedisConstant.QUESTION_ACCEPT_KEY + loginUser.getId();
+        String failKey = RedisConstant.QUESTION_FAIL_KEY + loginUser.getId();
+        if (Boolean.TRUE.equals(template.opsForSet().isMember(acceptKey, id.toString()))) {
+            questionVO.setStatus(QuestionAcceptEnum.ACCEPT.getValue());
+        } else if (Boolean.TRUE.equals(template.opsForSet().isMember(failKey, id.toString()))) {
+            questionVO.setStatus(QuestionAcceptEnum.UNACCEPT.getValue());
+        } else {
+            questionVO.setStatus(QuestionAcceptEnum.NEVER.getValue());
+        }
+        return ResultUtils.success(questionVO);
     }
 
     /**
-     * 分页获取题目列表
+     * 分页获取题目列表（做题端）
      *
      * @param questionQueryRequest
      * @return
      */
     @PostMapping("/list/page/vo")
-    public BaseResponse<Page<QuestionListVO>> listQuestionVOByPage(@RequestBody QuestionQueryRequest questionQueryRequest) {
+    public BaseResponse<Page<QuestionListVO>> listQuestionVOByPage(@RequestBody QuestionQueryRequest questionQueryRequest, HttpServletRequest request) {
         long current = questionQueryRequest.getCurrent();
         long size = questionQueryRequest.getPageSize();
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
         Page<Question> questionPage = questionService.page(new Page<>(current, size),
                 questionService.getQueryWrapper(questionQueryRequest));
-        return ResultUtils.success(questionService.getQuestionVOPage(questionPage));
+        Page<QuestionListVO> questionVOPage = questionService.getQuestionVOPage(questionPage);
+        final User loginUser = userService.getLoginUser(request);
+        String acceptKey = RedisConstant.QUESTION_ACCEPT_KEY + loginUser.getId();
+        String failKey = RedisConstant.QUESTION_FAIL_KEY + loginUser.getId();
+        questionVOPage.getRecords().forEach(questionVO -> {
+            if (Boolean.TRUE.equals(template.opsForSet().isMember(acceptKey, questionVO.getId().toString()))) {
+                questionVO.setStatus(QuestionAcceptEnum.ACCEPT.getValue());
+            } else if (Boolean.TRUE.equals(template.opsForSet().isMember(failKey, questionVO.getId().toString()))) {
+                questionVO.setStatus(QuestionAcceptEnum.UNACCEPT.getValue());
+            } else {
+                questionVO.setStatus(QuestionAcceptEnum.NEVER.getValue());
+            }
+        });
+        return ResultUtils.success(questionVOPage);
+    }
+
+    /**
+     * 分页获取题目列表（管理端）
+     *
+     * @param questionQueryRequest
+     * @return
+     */
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @PostMapping("/manage/list/page/vo")
+    public BaseResponse<Page<QuestionManageVO>> listQuestionManageVOByPage(@RequestBody QuestionQueryRequest questionQueryRequest) {
+        long current = questionQueryRequest.getCurrent();
+        long size = questionQueryRequest.getPageSize();
+        // 限制爬虫
+        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+        Page<Question> questionPage = questionService.page(new Page<>(current, size),
+                questionService.getQueryWrapper(questionQueryRequest));
+        return ResultUtils.success(questionService.getQuestionManageVOPage(questionPage));
     }
 
     /**

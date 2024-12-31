@@ -13,6 +13,7 @@ import java.util.List;
 
 /**
  * 题目封装类
+ *
  * @TableName question
  */
 @Data
@@ -46,6 +47,10 @@ public class QuestionVO implements Serializable {
      * 样例
      */
     private List<SampleCase> sampleCase;
+    /**
+     * 当前用户是否通过
+     */
+    private Integer status;
 
     /**
      * 包装类转对象
