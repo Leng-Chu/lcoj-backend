@@ -1,6 +1,9 @@
 package com.lc.oj.model.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
@@ -38,6 +41,10 @@ public class QuestionSubmit implements Serializable {
     @TableField("judgeInfo")
     private String judgeInfo;
 
+    @ApiModelProperty(value = "每个点的判题信息（json 对象）")
+    @TableField("caseInfoList")
+    private String caseInfoList;
+
     @ApiModelProperty(value = "判题状态（0 - 待判题、1 - 判题中、2 - 成功、3 - 失败）")
     @TableField("status")
     private Integer status;
@@ -72,7 +79,6 @@ public class QuestionSubmit implements Serializable {
 
     @ApiModelProperty(value = "是否删除")
     @TableField("isDelete")
-    @TableLogic
     private Integer isDelete;
 
 

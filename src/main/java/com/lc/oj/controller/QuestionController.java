@@ -1,6 +1,7 @@
 package com.lc.oj.controller;
 
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.gson.Gson;
 import com.lc.oj.annotation.AuthCheck;
@@ -13,10 +14,12 @@ import com.lc.oj.exception.BusinessException;
 import com.lc.oj.exception.ThrowUtils;
 import com.lc.oj.model.dto.question.*;
 import com.lc.oj.model.entity.Question;
+import com.lc.oj.model.entity.QuestionSubmit;
 import com.lc.oj.model.entity.User;
 import com.lc.oj.model.vo.QuestionListVO;
 import com.lc.oj.model.vo.QuestionVO;
 import com.lc.oj.service.IQuestionService;
+import com.lc.oj.service.IQuestionSubmitService;
 import com.lc.oj.service.IUserService;
 import com.lc.oj.utils.FileUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +49,8 @@ public class QuestionController {
     private final static Gson GSON = new Gson();
     @Resource
     private IQuestionService questionService;
+    @Resource
+    private IQuestionSubmitService questionSubmitService;
     @Resource
     private IUserService userService;
     @Value("${lcoj.data-path}")
@@ -119,6 +124,10 @@ public class QuestionController {
         }
         // 删除题目
         boolean b = questionService.removeById(id);
+        // 删除提交记录
+        QueryWrapper<QuestionSubmit> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("questionId", id);
+        questionSubmitService.remove(queryWrapper);
         // 删除数据文件夹
         File dir = new File(dataPath + oldQuestion.getNum());
         FileUtils.deleteDirectory(dir);
@@ -133,6 +142,7 @@ public class QuestionController {
      */
     @PostMapping("/update")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @Transactional
     public BaseResponse<Boolean> updateQuestion(@RequestBody QuestionUpdateRequest questionUpdateRequest) {
         if (questionUpdateRequest == null || questionUpdateRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -157,9 +167,22 @@ public class QuestionController {
         // 判断是否存在
         Question oldQuestion = questionService.getById(id);
         ThrowUtils.throwIf(oldQuestion == null, ErrorCode.NOT_FOUND_ERROR);
+        // 改题目表
         boolean result = questionService.updateById(question);
+        // 在questionsubmit表里查询questionid相同的字段，如果num或title改了，同步更新
+        if(!Objects.equals(oldQuestion.getNum(), question.getNum()) || !Objects.equals(oldQuestion.getTitle(), question.getTitle())){
+            //根据questionId查询questionSubmit表中的数据
+            QueryWrapper<QuestionSubmit> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("questionId", id);
+            List<QuestionSubmit> questionSubmitList = questionSubmitService.list(queryWrapper);
+            for(QuestionSubmit questionSubmit : questionSubmitList){
+                questionSubmit.setQuestionNum(question.getNum());
+                questionSubmit.setQuestionTitle(question.getTitle());
+                questionSubmitService.updateById(questionSubmit);
+            }
+        }
+        //将旧文件夹改名为新文件夹
         if(!Objects.equals(oldQuestion.getNum(), question.getNum())){
-            //将旧文件夹改名为新文件夹
             File oldDir = new File(dataPath + oldQuestion.getNum());
             File newDir = new File(dataPath + question.getNum());
             if (oldDir.exists()) {

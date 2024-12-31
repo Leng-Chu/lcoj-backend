@@ -1,16 +1,19 @@
 package com.lc.oj.model.vo;
 
 import cn.hutool.json.JSONUtil;
-import com.lc.oj.model.codesandbox.JudgeInfo;
+import com.lc.oj.model.dto.judge.CaseInfo;
+import com.lc.oj.model.dto.judge.JudgeInfo;
 import com.lc.oj.model.entity.QuestionSubmit;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 题目提交封装类
+ *
  * @TableName question
  */
 @Data
@@ -29,13 +32,21 @@ public class QuestionSubmitVO implements Serializable {
      */
     private String code;
     /**
-     * 判题信息
+     * 每个点的判题信息
+     */
+    private List<CaseInfo> caseInfoList;
+    /**
+     * 总的判题信息
      */
     private JudgeInfo judgeInfo;
     /**
      * 判题状态（0 - 待判题、1 - 判题中、2 - 成功、3 - 失败）
      */
     private Integer status;
+    /**
+     * 题目id
+     */
+    private Long questionId;
     /**
      * 题号
      */
@@ -73,6 +84,10 @@ public class QuestionSubmitVO implements Serializable {
         if (judgeInfoObj != null) {
             questionSubmit.setJudgeInfo(JSONUtil.toJsonStr(judgeInfoObj));
         }
+        List<CaseInfo> caseInfoList = questionSubmitVO.getCaseInfoList();
+        if (caseInfoList != null) {
+            questionSubmit.setCaseInfoList(JSONUtil.toJsonStr(caseInfoList));
+        }
         return questionSubmit;
     }
 
@@ -90,6 +105,9 @@ public class QuestionSubmitVO implements Serializable {
         BeanUtils.copyProperties(questionSubmit, questionSubmitVO);
         String judgeInfoStr = questionSubmit.getJudgeInfo();
         questionSubmitVO.setJudgeInfo(JSONUtil.toBean(judgeInfoStr, JudgeInfo.class));
+        String caseInfoListStr = questionSubmit.getCaseInfoList();
+        //CaseInfoList是一个bean的list，将字符串转为List<CaseInfo>
+        questionSubmitVO.setCaseInfoList(JSONUtil.toList(JSONUtil.parseArray(caseInfoListStr), CaseInfo.class));
         return questionSubmitVO;
     }
 }

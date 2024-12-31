@@ -69,7 +69,7 @@ public class FileController {
                     item.setSize(file.length());
                     if (file.getName().endsWith(".in")) {
                         inputFiles.add(item);
-                    } else if (file.getName().endsWith(".out")) {
+                    } else if (file.getName().endsWith(".out")||file.getName().endsWith(".ans")) {
                         outputFiles.add(item);
                     }
                 }

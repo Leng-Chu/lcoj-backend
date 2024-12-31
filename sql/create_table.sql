@@ -7,7 +7,7 @@ use lcoj;
 -- 用户表
 create table if not exists user
 (
-    id           bigint                                 comment 'id' primary key,
+    id           bigint comment 'id' primary key,
     userName     varchar(256)                           not null comment '昵称',
     userPassword varchar(512)                           not null comment '密码',
     userRole     varchar(256) default 'user'            not null comment '用户角色：user/admin/ban',
@@ -20,7 +20,7 @@ create table if not exists user
 -- 题目表
 create table if not exists question
 (
-    id          bigint                             comment 'id' primary key,
+    id          bigint comment 'id' primary key,
     num         bigint                             not null comment '题号',
     title       varchar(512)                       not null comment '标题',
     content     text                               not null comment '内容',
@@ -43,19 +43,20 @@ create table if not exists question
 -- 题目提交表
 create table if not exists question_submit
 (
-    id              bigint                             comment 'id' primary key,
-    language        varchar(128)                       not null comment '编程语言',
-    code            text                               not null comment '用户代码',
-    judgeInfo       text                               null comment '判题信息（json 对象）',
-    status          int      default 0                 not null comment '判题状态（0 - 待判题、1 - 判题中、2 - 成功、3 - 失败）',
-    questionId      bigint                             not null comment '题目id',
-    questionNum     bigint                             not null comment '题号',
-    questionTitle   varchar(512)                       not null comment '题目标题',
-    userId          bigint                             not null comment '创建用户id',
-    userName        varchar(256)                       not null comment '创建用户昵称',
-    createTime      datetime default CURRENT_TIMESTAMP not null comment '创建时间',
-    updateTime      datetime default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
-    isDelete        tinyint  default 0                 not null comment '是否删除',
+    id            bigint comment 'id' primary key,
+    language      varchar(128)                       not null comment '编程语言',
+    code          text                               not null comment '用户代码',
+    judgeInfo     text                               null comment '判题信息（json 对象）',
+    caseInfoList  text                               null comment '每个点的判题信息（json 对象）',
+    status        int      default 0                 not null comment '判题状态（0 - 待判题、1 - 判题中、2 - 成功、3 - 失败）',
+    questionId    bigint                             not null comment '题目id',
+    questionNum   bigint                             not null comment '题号',
+    questionTitle varchar(512)                       not null comment '题目标题',
+    userId        bigint                             not null comment '创建用户id',
+    userName      varchar(256)                       not null comment '创建用户昵称',
+    createTime    datetime default CURRENT_TIMESTAMP not null comment '创建时间',
+    updateTime    datetime default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
+    isDelete      tinyint  default 0                 not null comment '是否删除',
     index idx_questionId (questionId),
     index idx_userId (userId)
 ) comment '题目提交';

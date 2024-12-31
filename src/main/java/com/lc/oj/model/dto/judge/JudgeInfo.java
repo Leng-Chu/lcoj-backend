@@ -1,4 +1,4 @@
-package com.lc.oj.model.codesandbox;
+package com.lc.oj.model.dto.judge;
 
 import lombok.Data;
 
@@ -9,17 +9,17 @@ import lombok.Data;
 public class JudgeInfo {
 
     /**
-     * 程序执行信息
+     * （总的）判题结果
      */
-    private String message;
+    private Integer judgeResult;
 
     /**
-     * 消耗内存
+     * （最大）消耗内存
      */
     private Long memory;
 
     /**
-     * 消耗时间
+     * （最大）消耗时间
      */
     private Long time;
 }

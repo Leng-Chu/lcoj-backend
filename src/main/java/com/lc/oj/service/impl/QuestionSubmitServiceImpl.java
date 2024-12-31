@@ -15,16 +15,19 @@ import com.lc.oj.model.entity.User;
 import com.lc.oj.model.enums.QuestionSubmitLanguageEnum;
 import com.lc.oj.model.enums.QuestionSubmitStatusEnum;
 import com.lc.oj.model.vo.QuestionSubmitVO;
+import com.lc.oj.service.IJudgeService;
 import com.lc.oj.service.IQuestionService;
 import com.lc.oj.service.IQuestionSubmitService;
 import com.lc.oj.service.IUserService;
 import com.lc.oj.utils.SqlUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -39,6 +42,10 @@ import java.util.stream.Collectors;
 public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper, QuestionSubmit> implements IQuestionSubmitService {
     @Resource
     private IQuestionService questionService;
+
+    @Resource
+    @Lazy
+    private IJudgeService judgeService;
 
     @Resource
     private IUserService userService;
@@ -74,18 +81,14 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         questionSubmit.setQuestionNum(question.getNum());
         questionSubmit.setCode(questionSubmitAddRequest.getCode());
         questionSubmit.setLanguage(language);
-        // 设置初始状态
-        questionSubmit.setStatus(QuestionSubmitStatusEnum.WAITING.getValue());
         questionSubmit.setJudgeInfo("{}");
+        questionSubmit.setCaseInfoList("[]");
         boolean save = this.save(questionSubmit);
-        if (!save){
+        if (!save) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "数据插入失败");
         }
         Long questionSubmitId = questionSubmit.getId();
-        // TODO 执行判题服务，待完善
-//        CompletableFuture.runAsync(() -> {
-//            judgeService.doJudge(questionSubmitId);
-//        });
+        CompletableFuture.runAsync(() -> judgeService.doJudge(questionSubmitId));
         return questionSubmitId;
     }
 
@@ -138,7 +141,7 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
     public Page<QuestionSubmitVO> getQuestionSubmitVOPage(Page<QuestionSubmit> questionSubmitPage, User loginUser) {
         List<QuestionSubmit> questionSubmitList = questionSubmitPage.getRecords();
         Page<QuestionSubmitVO> questionSubmitVOPage = new Page<>(questionSubmitPage.getCurrent(), questionSubmitPage.getSize(), questionSubmitPage.getTotal());
-        if (questionSubmitList==null||questionSubmitList.isEmpty()){
+        if (questionSubmitList == null || questionSubmitList.isEmpty()) {
             return questionSubmitVOPage;
         }
         List<QuestionSubmitVO> questionSubmitVOList = questionSubmitList.stream()
