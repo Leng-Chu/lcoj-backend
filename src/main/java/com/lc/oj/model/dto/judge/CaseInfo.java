@@ -18,6 +18,16 @@ public class CaseInfo {
     private Integer judgeResult;
 
     /**
+     * 消耗时间
+     */
+    private Long time;
+
+    /**
+     * 消耗内存
+     */
+    private Long memory;
+
+    /**
      * 输入用例
      */
     private String input;

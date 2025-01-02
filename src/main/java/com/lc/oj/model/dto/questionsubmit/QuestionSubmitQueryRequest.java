@@ -19,9 +19,9 @@ public class QuestionSubmitQueryRequest extends PageRequest implements Serializa
      */
     private String language;
     /**
-     * 提交状态
+     * 判题结果
      */
-    private Integer status;
+    private Integer judgeResult;
     /**
      * 题号
      */

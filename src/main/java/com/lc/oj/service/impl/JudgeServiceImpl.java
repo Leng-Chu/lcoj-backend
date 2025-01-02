@@ -4,7 +4,6 @@ import cn.hutool.json.JSONUtil;
 import com.lc.oj.common.ErrorCode;
 import com.lc.oj.constant.RedisConstant;
 import com.lc.oj.exception.BusinessException;
-import com.lc.oj.model.dto.judge.JudgeInfo;
 import com.lc.oj.model.dto.judge.StrategyRequest;
 import com.lc.oj.model.dto.judge.StrategyResponse;
 import com.lc.oj.model.dto.question.JudgeConfig;
@@ -69,17 +68,15 @@ public class JudgeServiceImpl implements IJudgeService {
         // -----执行判题策略，获取strategyResponse------
         StrategyResponse strategyResponse = new StrategyResponse();
         strategyResponse.setSuccess(true);
-        JudgeInfo judgeInfo = new JudgeInfo();
-        judgeInfo.setMemory(100L);
-        judgeInfo.setTime(200L);
-        judgeInfo.setJudgeResult(JudgeResultEnum.WRONG_ANSWER.getValue());
-        strategyResponse.setJudgeInfo(judgeInfo);
         strategyResponse.setCaseInfoList(new ArrayList<>());
+        strategyResponse.setJudgeResult(JudgeResultEnum.ACCEPTED.getValue());
         // ------------------------------------------
         // 5）修改数据库中的判题结果
         questionSubmitUpdate = new QuestionSubmit();
         questionSubmitUpdate.setId(questionSubmitId);
-        questionSubmitUpdate.setJudgeInfo(JSONUtil.toJsonStr(strategyResponse.getJudgeInfo()));
+        questionSubmitUpdate.setMaxTime(strategyResponse.getMaxTime());
+        questionSubmitUpdate.setMaxMemory(strategyResponse.getMaxMemory());
+        questionSubmitUpdate.setJudgeResult(strategyResponse.getJudgeResult());
         questionSubmitUpdate.setCaseInfoList(JSONUtil.toJsonStr(strategyResponse.getCaseInfoList()));
         if (strategyResponse.isSuccess()) {
             questionSubmitUpdate.setStatus(QuestionSubmitStatusEnum.SUCCEED.getValue());
@@ -94,7 +91,7 @@ public class JudgeServiceImpl implements IJudgeService {
         // 使用redis存储每个人通过的题目集合
         String acceptKey = RedisConstant.QUESTION_ACCEPT_KEY + questionSubmit.getUserId();
         String failKey = RedisConstant.QUESTION_FAIL_KEY + questionSubmit.getUserId();
-        if (Objects.equals(strategyResponse.getJudgeInfo().getJudgeResult(), JudgeResultEnum.ACCEPTED.getValue())) {
+        if (Objects.equals(strategyResponse.getJudgeResult(), JudgeResultEnum.ACCEPTED.getValue())) {
             question.setAcceptedNum(question.getAcceptedNum() + 1);
             questionService.updateById(question);
             // 设置这道题为通过

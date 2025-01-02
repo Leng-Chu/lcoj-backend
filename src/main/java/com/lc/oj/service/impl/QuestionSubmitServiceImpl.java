@@ -85,7 +85,6 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         questionSubmit.setQuestionNum(question.getNum());
         questionSubmit.setCode(questionSubmitAddRequest.getCode());
         questionSubmit.setLanguage(language);
-        questionSubmit.setJudgeInfo("{}");
         questionSubmit.setCaseInfoList("[]");
         boolean save = this.save(questionSubmit);
         if (!save) {
@@ -110,7 +109,7 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
             return queryWrapper;
         }
         String language = questionSubmitQueryRequest.getLanguage();
-        Integer status = questionSubmitQueryRequest.getStatus();
+        Integer judgeResult = questionSubmitQueryRequest.getJudgeResult();
         Long questionNum = questionSubmitQueryRequest.getQuestionNum();
         String questionTitle = questionSubmitQueryRequest.getQuestionTitle();
         String userName = questionSubmitQueryRequest.getUserName();
@@ -122,7 +121,7 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         queryWrapper.like(StringUtils.isNotBlank(userName), "userName", userName);
         queryWrapper.like(StringUtils.isNotBlank(questionTitle), "questionTitle", questionTitle);
         queryWrapper.eq(ObjectUtils.isNotEmpty(questionNum), "questionNum", questionNum);
-        queryWrapper.eq(QuestionSubmitStatusEnum.getEnumByValue(status) != null, "status", status);
+        queryWrapper.eq(QuestionSubmitStatusEnum.getEnumByValue(judgeResult) != null, "judgeResult", judgeResult);
         queryWrapper.eq("isDelete", false);
         queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
                 sortField);

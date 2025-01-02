@@ -2,7 +2,6 @@ package com.lc.oj.model.vo;
 
 import cn.hutool.json.JSONUtil;
 import com.lc.oj.model.dto.judge.CaseInfo;
-import com.lc.oj.model.dto.judge.JudgeInfo;
 import com.lc.oj.model.entity.QuestionSubmit;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
@@ -32,17 +31,25 @@ public class QuestionSubmitVO implements Serializable {
      */
     private String code;
     /**
-     * 每个点的判题信息
-     */
-    private List<CaseInfo> caseInfoList;
-    /**
-     * 总的判题信息
-     */
-    private JudgeInfo judgeInfo;
-    /**
      * 判题状态（0 - 待判题、1 - 判题中、2 - 成功、3 - 失败）
      */
     private Integer status;
+    /**
+     * 判题结果（0 - 等待判题、1 - 通过题目、 2~7 - 未通过、 8 - 无测评数据）
+     */
+    private Integer judgeResult;
+    /**
+     * 最大耗时
+     */
+    private Long maxTime;
+    /**
+     * 最大内存
+     */
+    private Long maxMemory;
+    /**
+     * 每个点的判题信息
+     */
+    private List<CaseInfo> caseInfoList;
     /**
      * 题目id
      */
@@ -80,10 +87,6 @@ public class QuestionSubmitVO implements Serializable {
         }
         QuestionSubmit questionSubmit = new QuestionSubmit();
         BeanUtils.copyProperties(questionSubmitVO, questionSubmit);
-        JudgeInfo judgeInfoObj = questionSubmitVO.getJudgeInfo();
-        if (judgeInfoObj != null) {
-            questionSubmit.setJudgeInfo(JSONUtil.toJsonStr(judgeInfoObj));
-        }
         List<CaseInfo> caseInfoList = questionSubmitVO.getCaseInfoList();
         if (caseInfoList != null) {
             questionSubmit.setCaseInfoList(JSONUtil.toJsonStr(caseInfoList));
@@ -103,8 +106,6 @@ public class QuestionSubmitVO implements Serializable {
         }
         QuestionSubmitVO questionSubmitVO = new QuestionSubmitVO();
         BeanUtils.copyProperties(questionSubmit, questionSubmitVO);
-        String judgeInfoStr = questionSubmit.getJudgeInfo();
-        questionSubmitVO.setJudgeInfo(JSONUtil.toBean(judgeInfoStr, JudgeInfo.class));
         String caseInfoListStr = questionSubmit.getCaseInfoList();
         //CaseInfoList是一个bean的list，将字符串转为List<CaseInfo>
         questionSubmitVO.setCaseInfoList(JSONUtil.toList(JSONUtil.parseArray(caseInfoListStr), CaseInfo.class));

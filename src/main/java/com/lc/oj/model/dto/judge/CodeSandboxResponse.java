@@ -13,10 +13,5 @@ public class CodeSandboxResponse {
     /**
      * 判题信息
      */
-    private JudgeInfo judgeInfo;
-
-    /**
-     * 如果没有通过该测试点，将错误信息储存在caseInfo中
-     */
     private CaseInfo caseInfo;
 }

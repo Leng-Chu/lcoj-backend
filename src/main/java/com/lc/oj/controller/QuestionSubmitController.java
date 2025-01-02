@@ -45,7 +45,7 @@ public class QuestionSubmitController {
      * @param request
      * @return 提交记录的 id
      */
-    @PostMapping("/question_submit/do")
+    @PostMapping("/do")
     public BaseResponse<Long> doQuestionSubmit(@RequestBody QuestionSubmitAddRequest questionSubmitAddRequest,
                                                HttpServletRequest request) {
         if (questionSubmitAddRequest == null || questionSubmitAddRequest.getQuestionId() <= 0) {
@@ -63,7 +63,7 @@ public class QuestionSubmitController {
      * @param request
      * @return
      */
-    @PostMapping("/question_submit/list/page")
+    @PostMapping("/list/page")
     public BaseResponse<Page<QuestionSubmitVO>> listQuestionSubmitByPage(@RequestBody QuestionSubmitQueryRequest questionSubmitQueryRequest,
                                                                          HttpServletRequest request) {
         long current = questionSubmitQueryRequest.getCurrent();

@@ -37,17 +37,25 @@ public class QuestionSubmit implements Serializable {
     @TableField("code")
     private String code;
 
-    @ApiModelProperty(value = "判题信息（json 对象）")
-    @TableField("judgeInfo")
-    private String judgeInfo;
+    @ApiModelProperty(value = "判题状态（0 - 待判题、1 - 判题中、2 - 成功、3 - 失败）")
+    @TableField("status")
+    private Integer status;
+
+    @ApiModelProperty(value = "判题结果（0 - 等待判题、1 - 通过题目、 2~7 - 未通过、 8 - 无测评数据）")
+    @TableField("judgeResult")
+    private Integer judgeResult;
+
+    @ApiModelProperty(value = "最大耗时")
+    @TableField("maxTime")
+    private Long maxTime;
+
+    @ApiModelProperty(value = "最大内存")
+    @TableField("maxMemory")
+    private Long maxMemory;
 
     @ApiModelProperty(value = "每个点的判题信息（json 对象）")
     @TableField("caseInfoList")
     private String caseInfoList;
-
-    @ApiModelProperty(value = "判题状态（0 - 待判题、1 - 判题中、2 - 成功、3 - 失败）")
-    @TableField("status")
-    private Integer status;
 
     @ApiModelProperty(value = "题目id")
     @TableField("questionId")

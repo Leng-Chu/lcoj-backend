@@ -6,9 +6,11 @@
         <id property="id" column="id" jdbcType="BIGINT"/>
         <result property="language" column="language" jdbcType="VARCHAR"/>
         <result property="code" column="code" jdbcType="VARCHAR"/>
-        <result property="judgeInfo" column="judgeInfo" jdbcType="VARCHAR"/>
-        <result column="caseInfoList" property="caseInfoList" jdbcType="VARCHAR"/>
         <result property="status" column="status" jdbcType="INTEGER"/>
+        <result column="judgeResult" property="judgeResult" jdbcType="INTEGER"/>
+        <result column="maxTime" property="maxTime" jdbcType="BIGINT"/>
+        <result column="maxMemory" property="maxMemory" jdbcType="BIGINT"/>
+        <result column="caseInfoList" property="caseInfoList" jdbcType="VARCHAR"/>
         <result property="questionId" column="questionId" jdbcType="BIGINT"/>
         <result property="questionNum" column="questionNum" jdbcType="BIGINT"/>
         <result property="questionTitle" column="questionTitle" jdbcType="VARCHAR"/>
@@ -20,7 +22,7 @@
     </resultMap>
 
     <sql id="Base_Column_List">
-        id, language, code, judgeInfo, caseInfoList, status, questionId, questionNum, questionTitle, userId, userName, createTime, updateTime, isDelete
+        id, language, code, status, judgeResult, maxTime, maxMemory, caseInfoList, questionId, questionNum, questionTitle, userId, userName, createTime, updateTime, isDelete
     </sql>
 
 </mapper>

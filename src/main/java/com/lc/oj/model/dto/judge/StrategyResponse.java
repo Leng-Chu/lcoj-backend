@@ -13,9 +13,19 @@ public class StrategyResponse {
     private boolean success;
 
     /**
-     * 总的判题信息，包括消耗的最大时间和内存
+     * 最大耗时
      */
-    private JudgeInfo judgeInfo;
+    private Long maxTime;
+
+    /**
+     * 最大内存
+     */
+    private Long maxMemory;
+
+    /**
+     * 判题结果
+     */
+    private Integer judgeResult;
 
     /**
      * 每个点的测试信息
