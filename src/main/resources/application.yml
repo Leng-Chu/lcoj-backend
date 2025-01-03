@@ -38,6 +38,12 @@ spring:
     multipart:
       max-file-size: 104857600
       max-request-size: 104857600
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: root
+    password: 123456
+    virtual-host: /
 server:
   address: 0.0.0.0
   port: 8101
@@ -49,7 +55,7 @@ server:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: false
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    log-impl: ''
   global-config:
     db-config:
       logic-delete-field: isDelete # 全局逻辑删除的实体字段名
@@ -69,3 +75,9 @@ knife4j:
 # lcoj配置
 lcoj:
   data-path: "xxx"
+  threadpool:
+    core-pool-size: 5
+    max-pool-size: 10
+    queue-capacity: 100
+    keep-alive-seconds: 60
+

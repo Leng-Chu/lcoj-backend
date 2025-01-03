@@ -7,6 +7,7 @@ import com.lc.oj.common.ErrorCode;
 import com.lc.oj.constant.CommonConstant;
 import com.lc.oj.exception.BusinessException;
 import com.lc.oj.mapper.QuestionSubmitMapper;
+import com.lc.oj.message.MessageProducer;
 import com.lc.oj.model.dto.questionsubmit.QuestionSubmitAddRequest;
 import com.lc.oj.model.dto.questionsubmit.QuestionSubmitQueryRequest;
 import com.lc.oj.model.entity.Question;
@@ -15,20 +16,17 @@ import com.lc.oj.model.entity.User;
 import com.lc.oj.model.enums.QuestionSubmitLanguageEnum;
 import com.lc.oj.model.enums.QuestionSubmitStatusEnum;
 import com.lc.oj.model.vo.QuestionSubmitVO;
-import com.lc.oj.service.IJudgeService;
 import com.lc.oj.service.IQuestionService;
 import com.lc.oj.service.IQuestionSubmitService;
 import com.lc.oj.service.IUserService;
 import com.lc.oj.utils.SqlUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -45,8 +43,7 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
     private IQuestionService questionService;
 
     @Resource
-    @Lazy
-    private IJudgeService judgeService;
+    private MessageProducer messageProducer;
 
     @Resource
     private IUserService userService;
@@ -91,7 +88,7 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "数据插入失败");
         }
         Long questionSubmitId = questionSubmit.getId();
-        CompletableFuture.runAsync(() -> judgeService.doJudge(questionSubmitId));
+        messageProducer.sendJudgeMessage(questionSubmitId);
         return questionSubmitId;
     }
 
