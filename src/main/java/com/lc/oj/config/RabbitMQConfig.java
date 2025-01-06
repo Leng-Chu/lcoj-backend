@@ -22,6 +22,6 @@ public class RabbitMQConfig {
 
     @Bean
     public Binding binding(Queue judgeQueue, DirectExchange judgeExchange) {
-        return BindingBuilder.bind(judgeQueue).to(judgeExchange).with("judge");
+        return BindingBuilder.bind(judgeQueue).to(judgeExchange).with("com/lc/oj/judge");
     }
 }

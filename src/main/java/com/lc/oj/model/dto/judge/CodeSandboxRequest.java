@@ -1,38 +1,44 @@
 package com.lc.oj.model.dto.judge;
 
-import com.lc.oj.model.dto.question.JudgeConfig;
+import lombok.Builder;
 import lombok.Data;
 
 @Data
+@Builder
 public class CodeSandboxRequest {
 
     /**
      * 代码
      */
-    private String code;
+    private String source_code;
 
     /**
      * 编程语言
      */
-    private String language;
+    private Integer language_id;
 
     /**
      * 输入数据
      */
-    private String input;
+    private String stdin;
 
     /**
      * 预期输出
      */
-    private String output;
+    private String expected_output;
 
     /**
-     * 判题配置
+     * 时间限制（s）
      */
-    private JudgeConfig judgeConfig;
+    private double cpu_time_limit;
 
     /**
-     * 是否需要返回错误数据的具体内容
+     * 内存限制（KB）
      */
-    private boolean needData;
+    private double memory_limit;
+
+    /**
+     * 编译选项
+     */
+    private String compiler_options;
 }

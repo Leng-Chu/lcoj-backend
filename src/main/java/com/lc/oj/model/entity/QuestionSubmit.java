@@ -37,10 +37,6 @@ public class QuestionSubmit implements Serializable {
     @TableField("code")
     private String code;
 
-    @ApiModelProperty(value = "判题状态（0 - 待判题、1 - 判题中、2 - 成功、3 - 失败）")
-    @TableField("status")
-    private Integer status;
-
     @ApiModelProperty(value = "判题结果（0 - 等待判题、1 - 通过题目、 2~7 - 未通过、 8 - 无测评数据）")
     @TableField("judgeResult")
     private Integer judgeResult;

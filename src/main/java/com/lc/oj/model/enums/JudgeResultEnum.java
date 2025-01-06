@@ -11,15 +11,15 @@ import java.util.stream.Collectors;
  */
 public enum JudgeResultEnum {
 
-    WAITING("等待判题", 0),
-    ACCEPTED("通过题目", 1),
-    WRONG_ANSWER("答案错误", 2),
-    COMPILE_ERROR("编译错误", 3),
-    RUNTIME_ERROR("运行错误", 4),
-    SYSTEM_ERROR("系统错误", 5),
-    TIME_LIMIT_EXCEEDED("时间超限", 6),
-    MEMORY_LIMIT_EXCEEDED("内存超限", 7),
-    DATA_NOT_FOUND("无测评数据", 8);;
+    WAITING("Waiting", 0),
+    ACCEPTED("Accepted", 1),
+    WRONG_ANSWER("Wrong Answer", 2),
+    COMPILE_ERROR("Compilation Error", 3),
+    RUNTIME_ERROR("Runtime Error", 4),
+    TIME_LIMIT_EXCEEDED("Time Limit Exceeded", 5),
+    MEMORY_LIMIT_EXCEEDED("Memory Limit Exceeded", 6),
+    SYSTEM_ERROR("System Error", 7),
+    DATA_NOT_FOUND("Data Not Found", 8);;
 
     private final String text;
 
@@ -52,6 +52,23 @@ public enum JudgeResultEnum {
         for (JudgeResultEnum anEnum : JudgeResultEnum.values()) {
             if (anEnum.value.equals(value)) {
                 return anEnum;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 根据 text 获取 value
+     *
+     * @return
+     */
+    public static Integer getValueByText(String text) {
+        if (ObjectUtils.isEmpty(text)) {
+            return null;
+        }
+        for (JudgeResultEnum anEnum : JudgeResultEnum.values()) {
+            if (anEnum.text.equals(text)) {
+                return anEnum.value;
             }
         }
         return null;

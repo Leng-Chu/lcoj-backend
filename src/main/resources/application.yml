@@ -55,7 +55,7 @@ server:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: false
-    log-impl: ''
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   global-config:
     db-config:
       logic-delete-field: isDelete # 全局逻辑删除的实体字段名
@@ -74,7 +74,9 @@ knife4j:
           - com.lc.oj.controller
 # lcoj配置
 lcoj:
-  data-path: "xxx"
+  judge:
+    data-path: "xxx"
+    codesandbox-url: "xxx"
   threadpool:
     core-pool-size: 5
     max-pool-size: 10

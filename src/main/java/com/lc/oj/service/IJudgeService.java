@@ -9,6 +9,9 @@ public interface IJudgeService {
      * 判题
      *
      * @param questionSubmitId
+     * @return
      */
-    void doJudge(long questionSubmitId);
+    boolean doJudge(long questionSubmitId);
+
+    void checkSubmit(long questionSubmitId);
 }

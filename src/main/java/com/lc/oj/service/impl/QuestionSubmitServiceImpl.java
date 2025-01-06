@@ -13,8 +13,8 @@ import com.lc.oj.model.dto.questionsubmit.QuestionSubmitQueryRequest;
 import com.lc.oj.model.entity.Question;
 import com.lc.oj.model.entity.QuestionSubmit;
 import com.lc.oj.model.entity.User;
+import com.lc.oj.model.enums.JudgeResultEnum;
 import com.lc.oj.model.enums.QuestionSubmitLanguageEnum;
-import com.lc.oj.model.enums.QuestionSubmitStatusEnum;
 import com.lc.oj.model.vo.QuestionSubmitVO;
 import com.lc.oj.service.IQuestionService;
 import com.lc.oj.service.IQuestionSubmitService;
@@ -118,7 +118,7 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         queryWrapper.like(StringUtils.isNotBlank(userName), "userName", userName);
         queryWrapper.like(StringUtils.isNotBlank(questionTitle), "questionTitle", questionTitle);
         queryWrapper.eq(ObjectUtils.isNotEmpty(questionNum), "questionNum", questionNum);
-        queryWrapper.eq(QuestionSubmitStatusEnum.getEnumByValue(judgeResult) != null, "judgeResult", judgeResult);
+        queryWrapper.eq(JudgeResultEnum.getEnumByValue(judgeResult) != null, "judgeResult", judgeResult);
         queryWrapper.eq("isDelete", false);
         queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
                 sortField);

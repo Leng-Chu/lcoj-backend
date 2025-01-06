@@ -59,7 +59,7 @@ public class QuestionController {
     private IUserService userService;
     @Resource
     private StringRedisTemplate template;
-    @Value("${lcoj.data-path}")
+    @Value("${lcoj.judge.data-path}")
     private String dataPath;
 
     /**

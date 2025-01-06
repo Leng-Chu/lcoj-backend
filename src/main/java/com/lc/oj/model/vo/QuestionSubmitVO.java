@@ -31,10 +31,6 @@ public class QuestionSubmitVO implements Serializable {
      */
     private String code;
     /**
-     * 判题状态（0 - 待判题、1 - 判题中、2 - 成功、3 - 失败）
-     */
-    private Integer status;
-    /**
      * 判题结果（0 - 等待判题、1 - 通过题目、 2~7 - 未通过、 8 - 无测评数据）
      */
     private Integer judgeResult;

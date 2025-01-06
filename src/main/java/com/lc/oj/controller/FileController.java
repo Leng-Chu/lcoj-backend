@@ -29,7 +29,7 @@ import java.util.List;
 @RequestMapping("/file")
 public class FileController {
 
-    @Value("${lcoj.data-path}")
+    @Value("${lcoj.judge.data-path}")
     private String dataPath;
 
     @PostMapping("/upload")
@@ -69,7 +69,7 @@ public class FileController {
                     item.setSize(file.length());
                     if (file.getName().endsWith(".in")) {
                         inputFiles.add(item);
-                    } else if (file.getName().endsWith(".out")||file.getName().endsWith(".ans")) {
+                    } else if (file.getName().endsWith(".out") || file.getName().endsWith(".ans")) {
                         outputFiles.add(item);
                     }
                 }

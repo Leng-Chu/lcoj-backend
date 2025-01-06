@@ -1,9 +1,11 @@
 package com.lc.oj.model.dto.judge;
 
 import com.lc.oj.model.dto.question.JudgeConfig;
+import lombok.Builder;
 import lombok.Data;
 
 @Data
+@Builder
 public class StrategyRequest {
 
     /**
@@ -20,7 +22,7 @@ public class StrategyRequest {
      * 题号
      */
     private Long num;
-    
+
     /**
      * 判题配置
      */

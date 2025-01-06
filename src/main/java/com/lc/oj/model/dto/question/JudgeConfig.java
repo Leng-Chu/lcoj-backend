@@ -14,7 +14,7 @@ public class JudgeConfig {
     private Long timeLimit;
 
     /**
-     * 内存限制（KB）
+     * 内存限制（MB）
      */
     private Long memoryLimit;
 }

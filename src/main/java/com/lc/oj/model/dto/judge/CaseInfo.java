@@ -7,10 +7,15 @@ import lombok.Data;
  * 如果judgeResult为2~7，那么message有值
  * 如果judgeResult为Wrong Answer，那么input, expectOutput, wrongOutput有值
  * 如果judgeResult为Runtime Error，那么input有值
- * 只返回输入输出都不超过500KB的测试数据
+ * 只返回输入输出都不超过500000字符的测试数据
  */
 @Data
 public class CaseInfo {
+
+    /**
+     * 测试点ID
+     */
+    private Integer caseId;
 
     /**
      * 判题结果
@@ -18,12 +23,12 @@ public class CaseInfo {
     private Integer judgeResult;
 
     /**
-     * 消耗时间
+     * 消耗时间（ms）
      */
     private Long time;
 
     /**
-     * 消耗内存
+     * 消耗内存（KB）
      */
     private Long memory;
 
@@ -46,5 +51,10 @@ public class CaseInfo {
      * 错误信息
      */
     private String message;
+
+    /**
+     * 数据信息
+     */
+    private String dataMessage;
 
 }

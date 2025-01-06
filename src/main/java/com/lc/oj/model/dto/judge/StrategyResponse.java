@@ -8,11 +8,6 @@ import java.util.List;
 public class StrategyResponse {
 
     /**
-     * 是否判题成功
-     */
-    private boolean success;
-
-    /**
      * 最大耗时
      */
     private Long maxTime;
