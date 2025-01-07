@@ -16,7 +16,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 @Slf4j
 @Component
@@ -53,14 +56,10 @@ public class NormalStrategy extends BaseStrategyAbstract {
             };
             futures.add(executorService.submit(task));
         }
-
         for (Future<CaseInfo> future : futures) {
             try {
                 CaseInfo caseInfo = future.get();
-                if (strategyResponse.getJudgeResult() != null
-                        && !Objects.equals(caseInfo.getJudgeResult(), JudgeResultEnum.ACCEPTED.getValue())) {
-                    strategyResponse.setJudgeResult(caseInfo.getJudgeResult());
-                }
+                //log.info("caseInfo: {}", caseInfo);
                 strategyResponse.getCaseInfoList().add(caseInfo);
                 if (caseInfo.getTime() != null) {
                     if (strategyResponse.getMaxTime() == null) {
@@ -76,14 +75,20 @@ public class NormalStrategy extends BaseStrategyAbstract {
                         strategyResponse.setMaxMemory(Math.max(strategyResponse.getMaxMemory(), caseInfo.getMemory()));
                     }
                 }
-            } catch (InterruptedException | ExecutionException e) {
+            } catch (Exception e) {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "调用代码沙箱异常: " + e);
+            }
+        }
+        strategyResponse.getCaseInfoList().sort(Comparator.comparing(CaseInfo::getCaseId));
+        for (CaseInfo caseInfo : strategyResponse.getCaseInfoList()) {
+            if (strategyResponse.getJudgeResult() == null
+                    && !Objects.equals(caseInfo.getJudgeResult(), JudgeResultEnum.ACCEPTED.getValue())) {
+                strategyResponse.setJudgeResult(caseInfo.getJudgeResult());
             }
         }
         if (strategyResponse.getJudgeResult() == null) {
             strategyResponse.setJudgeResult(JudgeResultEnum.ACCEPTED.getValue());
         }
-        strategyResponse.getCaseInfoList().sort(Comparator.comparing(CaseInfo::getCaseId));
         log.info("评测完毕，结果: {}", strategyResponse.getJudgeResult());
         return strategyResponse;
     }

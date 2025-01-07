@@ -15,6 +15,6 @@ public class MessageProducer {
 
     public void sendJudgeMessage(Long questionSubmitId) {
         log.info("sendJudgeMessage questionSubmitId = {}", questionSubmitId);
-        rabbitTemplate.convertAndSend("judgeExchange", "com/lc/oj/judge", questionSubmitId.toString());
+        rabbitTemplate.convertAndSend("judgeExchange", "judge", questionSubmitId.toString());
     }
 }

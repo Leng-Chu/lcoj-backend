@@ -10,6 +10,7 @@ import com.lc.oj.model.dto.judge.StrategyRequest;
 import com.lc.oj.model.dto.judge.StrategyResponse;
 import com.lc.oj.model.enums.JudgeResultEnum;
 import com.lc.oj.properties.JudgeProperties;
+import com.lc.oj.utils.Base64Utils;
 import com.lc.oj.utils.OkHttpUtils;
 import lombok.extern.slf4j.Slf4j;
 
@@ -85,17 +86,20 @@ public abstract class BaseStrategyAbstract implements JudgeStrategy {
         String status;
         do {
             Thread.sleep(1000); // 每500ms查询一次结果
-            String resultURL = judgeProperties.getCodesandboxUrl() + "/" + token; // 通过token获取结果
+            String resultURL = judgeProperties.getCodesandboxUrl() + "/" + token + "?base64_encoded=true"; // 通过token获取结果
             String resultStr = OkHttpUtils.get(resultURL);
             responseObject = JSONUtil.parseObj(resultStr);
             status = responseObject.getJSONObject("status").getStr("description");
         } while ("In Queue".equals(status)
                 || "Processing".equals(status));
-        log.info("获取到判题结果: {}", responseObject);
         CaseInfo caseInfo = new CaseInfo();
+        String message = Base64Utils.decode(responseObject.getStr("message"));
+        String compileOutput = Base64Utils.decode(responseObject.getStr("compile_output"));
+        String stderr = Base64Utils.decode(responseObject.getStr("stderr"));
+        String stdout = Base64Utils.decode(responseObject.getStr("stdout"));
         // 为JudgeResult赋值
         if (status.contains("Runtime Error")) {
-            if (responseObject.getStr("message").contains("137")) {
+            if (message.contains("137")) {
                 // 内存超限错误码为137
                 status = "Memory Limit Exceeded";
             } else {
@@ -107,25 +111,30 @@ public abstract class BaseStrategyAbstract implements JudgeStrategy {
             caseInfo.setJudgeResult(JudgeResultEnum.SYSTEM_ERROR.getValue());
             caseInfo.setMessage("未知错误类型");
         } else if (caseInfo.getJudgeResult().equals(JudgeResultEnum.COMPILE_ERROR.getValue())) {
-            caseInfo.setMessage(responseObject.getStr("compile_output"));
+            caseInfo.setMessage(compileOutput);
         } else if (caseInfo.getJudgeResult().equals(JudgeResultEnum.RUNTIME_ERROR.getValue())) {
-            caseInfo.setMessage(responseObject.getStr("stderr"));
+            caseInfo.setMessage(stderr);
         }
         // 为预期结果和实际结果赋值
-        if (caseId < MAX_CASE
-                && codeSandboxRequest.getStdin().length() < MAX_LENGTH
-                && codeSandboxRequest.getExpected_output().length() < MAX_LENGTH
-                && responseObject.getStr("stdout").length() < MAX_LENGTH) {
-            caseInfo.setInput(codeSandboxRequest.getStdin());
-            caseInfo.setExpectOutput(codeSandboxRequest.getExpected_output());
-            caseInfo.setWrongOutput(responseObject.getStr("stdout"));
-        } else {
-            caseInfo.setDataMessage("数据过大，无法显示");
+        if (stdout != null && caseId < MAX_CASE) {
+            if (codeSandboxRequest.getStdin().length() < MAX_LENGTH
+                    && codeSandboxRequest.getExpected_output().length() < MAX_LENGTH
+                    && stdout.length() < MAX_LENGTH) {
+                caseInfo.setInput(codeSandboxRequest.getStdin());
+                caseInfo.setExpectOutput(codeSandboxRequest.getExpected_output());
+                caseInfo.setWrongOutput(stdout);
+            } else {
+                caseInfo.setDataMessage("数据过大，无法显示");
+            }
         }
         // 为时间和内存赋值
         // timeStr单位为秒，是小数字符串，将时间转换为Long类型的毫秒
-        caseInfo.setTime((long) (Double.parseDouble(responseObject.getStr("time")) * 1000));
-        caseInfo.setMemory(responseObject.getLong("memory"));
+        if (responseObject.getStr("time") != null) {
+            caseInfo.setTime((long) (Double.parseDouble(responseObject.getStr("time")) * 1000));
+        }
+        if (responseObject.getStr("memory") != null) {
+            caseInfo.setMemory(responseObject.getLong("memory"));
+        }
         caseInfo.setCaseId(caseId);
         return caseInfo;
     }

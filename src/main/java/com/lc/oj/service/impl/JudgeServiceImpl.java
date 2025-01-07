@@ -40,7 +40,7 @@ public class JudgeServiceImpl implements IJudgeService {
     private JudgeProperties judgeProperties;
 
     @Override
-    public boolean doJudge(long questionSubmitId) {
+    public void doJudge(long questionSubmitId) {
         QuestionSubmit questionSubmit = questionSubmitService.getById(questionSubmitId);
         Question question = questionService.getById(questionSubmit.getQuestionId());
         // 1）根据题目来源选择不同的判题策略，获取判题结果
@@ -54,8 +54,7 @@ public class JudgeServiceImpl implements IJudgeService {
         JudgeStrategy judgeStrategy = new NormalStrategy(judgeProperties);
         StrategyResponse strategyResponse = judgeStrategy.doJudgeWithStrategy(strategyRequest);
         if (Objects.equals(strategyResponse.getJudgeResult(), JudgeResultEnum.SYSTEM_ERROR.getValue())) {
-            log.info("判题系统错误");
-            return false;
+            log.info("判题系统错误，questionSubmitId:{}", questionSubmitId);
         }
         // 3）修改数据库中的判题结果
         questionSubmit.setJudgeResult(strategyResponse.getJudgeResult());
@@ -64,8 +63,7 @@ public class JudgeServiceImpl implements IJudgeService {
         questionSubmit.setCaseInfoList(JSONUtil.toJsonStr(strategyResponse.getCaseInfoList()));
         boolean update = questionSubmitService.updateById(questionSubmit);
         if (!update) {
-            log.info("判题结果更新失败");
-            return false;
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "判题结果更新失败");
         }
         // 4）使用redis存储每个人通过的题目集合
         String acceptKey = RedisConstant.QUESTION_ACCEPT_KEY + questionSubmit.getUserId();
@@ -80,7 +78,6 @@ public class JudgeServiceImpl implements IJudgeService {
                 template.opsForSet().add(failKey, question.getId().toString());
             }
         }
-        return true;
     }
 
     @Override
