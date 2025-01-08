@@ -17,6 +17,7 @@ import com.lc.oj.model.entity.User;
 import com.lc.oj.model.vo.QuestionSubmitVO;
 import com.lc.oj.service.IQuestionSubmitService;
 import com.lc.oj.service.IUserService;
+import com.lc.oj.websocket.WebSocketServer;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -43,6 +44,8 @@ public class QuestionSubmitController {
     private IQuestionSubmitService questionSubmitService;
     @Resource
     private MessageProducer messageProducer;
+    @Resource
+    private WebSocketServer webSocketServer;
 
     /**
      * 提交题目
@@ -83,7 +86,7 @@ public class QuestionSubmitController {
     }
 
     /**
-     * 重判某道题
+     * 重判某个提交记录
      *
      * @param questionSubmitId
      * @return
@@ -101,7 +104,10 @@ public class QuestionSubmitController {
                 .set("caseInfoList", "[]")
                 .eq("id", questionSubmitId);
         boolean b = questionSubmitService.update(updateWrapper);
-        messageProducer.sendJudgeMessage(questionSubmitId);
+        if (b) {
+            webSocketServer.sendToAllClient("更新提交记录: " + questionSubmitId);
+            messageProducer.sendJudgeMessage(questionSubmitId);
+        }
         return ResultUtils.success(b);
     }
 }

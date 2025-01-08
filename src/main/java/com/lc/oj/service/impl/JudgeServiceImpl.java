@@ -16,6 +16,7 @@ import com.lc.oj.properties.JudgeProperties;
 import com.lc.oj.service.IJudgeService;
 import com.lc.oj.service.IQuestionService;
 import com.lc.oj.service.IQuestionSubmitService;
+import com.lc.oj.websocket.WebSocketServer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,9 @@ public class JudgeServiceImpl implements IJudgeService {
 
     @Resource
     private JudgeProperties judgeProperties;
+
+    @Resource
+    private WebSocketServer webSocketServer;
 
     @Override
     public void doJudge(long questionSubmitId) {
@@ -65,6 +69,7 @@ public class JudgeServiceImpl implements IJudgeService {
         if (!update) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "判题结果更新失败");
         }
+        webSocketServer.sendToAllClient("更新提交记录: " + questionSubmit.getId());
         // 4）使用redis存储每个人通过的题目集合
         String acceptKey = RedisConstant.QUESTION_ACCEPT_KEY + questionSubmit.getUserId();
         String failKey = RedisConstant.QUESTION_FAIL_KEY + questionSubmit.getUserId();

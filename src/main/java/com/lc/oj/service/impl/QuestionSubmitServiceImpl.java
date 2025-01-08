@@ -20,6 +20,7 @@ import com.lc.oj.service.IQuestionService;
 import com.lc.oj.service.IQuestionSubmitService;
 import com.lc.oj.service.IUserService;
 import com.lc.oj.utils.SqlUtils;
+import com.lc.oj.websocket.WebSocketServer;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -41,12 +42,12 @@ import java.util.stream.Collectors;
 public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper, QuestionSubmit> implements IQuestionSubmitService {
     @Resource
     private IQuestionService questionService;
-
     @Resource
     private MessageProducer messageProducer;
-
     @Resource
     private IUserService userService;
+    @Resource
+    private WebSocketServer webSocketServer;
 
     /**
      * 提交题目
@@ -88,6 +89,7 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "数据插入失败");
         }
         Long questionSubmitId = questionSubmit.getId();
+        webSocketServer.sendToAllClient("添加提交记录: " + questionSubmitId);
         messageProducer.sendJudgeMessage(questionSubmitId);
         return questionSubmitId;
     }

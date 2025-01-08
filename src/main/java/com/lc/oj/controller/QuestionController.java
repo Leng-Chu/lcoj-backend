@@ -25,6 +25,7 @@ import com.lc.oj.service.IQuestionService;
 import com.lc.oj.service.IQuestionSubmitService;
 import com.lc.oj.service.IUserService;
 import com.lc.oj.utils.FileUtils;
+import com.lc.oj.websocket.WebSocketServer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -59,6 +60,8 @@ public class QuestionController {
     private IUserService userService;
     @Resource
     private StringRedisTemplate template;
+    @Resource
+    private WebSocketServer webSocketServer;
     @Value("${lcoj.judge.data-path}")
     private String dataPath;
 
@@ -134,6 +137,7 @@ public class QuestionController {
         QueryWrapper<QuestionSubmit> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("questionId", id);
         questionSubmitService.remove(queryWrapper);
+        webSocketServer.sendToAllClient("删除题目: " + id);
         // 删除数据文件夹
         File dir = new File(dataPath + oldQuestion.getNum());
         FileUtils.deleteDirectory(dir);
@@ -185,6 +189,7 @@ public class QuestionController {
                 questionSubmit.setQuestionNum(question.getNum());
                 questionSubmit.setQuestionTitle(question.getTitle());
                 questionSubmitService.updateById(questionSubmit);
+                webSocketServer.sendToAllClient("更新提交记录: " + questionSubmit.getId());
             }
         }
         //将旧文件夹改名为新文件夹
