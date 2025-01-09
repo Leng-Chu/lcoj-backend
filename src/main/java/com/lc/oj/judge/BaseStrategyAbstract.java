@@ -40,7 +40,7 @@ public abstract class BaseStrategyAbstract implements JudgeStrategy {
         languageId.put("java", 62);
         languageId.put("python", 71);
         compilerOptions.put("cpp", "-fPIC -DONLINE_JUDGE -Wall -fno-asm -lm -march=native");
-        compilerOptions.put("java", "-DONLINE_JUDGE");
+        compilerOptions.put("java", "");
         compilerOptions.put("python", "");
     }
 
@@ -85,7 +85,7 @@ public abstract class BaseStrategyAbstract implements JudgeStrategy {
         JSONObject responseObject;
         String status;
         do {
-            Thread.sleep(1000); // 每500ms查询一次结果
+            Thread.sleep(1000); // 每1000ms查询一次结果
             String resultURL = judgeProperties.getCodesandboxUrl() + "/" + token + "?base64_encoded=true"; // 通过token获取结果
             String resultStr = OkHttpUtils.get(resultURL);
             responseObject = JSONUtil.parseObj(resultStr);
@@ -115,8 +115,12 @@ public abstract class BaseStrategyAbstract implements JudgeStrategy {
         } else if (caseInfo.getJudgeResult().equals(JudgeResultEnum.RUNTIME_ERROR.getValue())) {
             caseInfo.setMessage(stderr);
         }
-        // 为预期结果和实际结果赋值
-        if (stdout != null && caseId < MAX_CASE) {
+        // WA,TLE,MLE时为预期结果和实际结果赋值
+        if (stdout != null
+                && caseId < MAX_CASE
+                && (caseInfo.getJudgeResult().equals(JudgeResultEnum.WRONG_ANSWER.getValue())
+                || caseInfo.getJudgeResult().equals(JudgeResultEnum.MEMORY_LIMIT_EXCEEDED.getValue())
+                || caseInfo.getJudgeResult().equals(JudgeResultEnum.TIME_LIMIT_EXCEEDED.getValue()))) {
             if (codeSandboxRequest.getStdin().length() < MAX_LENGTH
                     && codeSandboxRequest.getExpected_output().length() < MAX_LENGTH
                     && stdout.length() < MAX_LENGTH) {
@@ -124,7 +128,7 @@ public abstract class BaseStrategyAbstract implements JudgeStrategy {
                 caseInfo.setExpectOutput(codeSandboxRequest.getExpected_output());
                 caseInfo.setWrongOutput(stdout);
             } else {
-                caseInfo.setDataMessage("数据过大，无法显示");
+                caseInfo.setMessage("数据过大，无法显示");
             }
         }
         // 为时间和内存赋值
@@ -134,6 +138,9 @@ public abstract class BaseStrategyAbstract implements JudgeStrategy {
         }
         if (responseObject.getStr("memory") != null) {
             caseInfo.setMemory(responseObject.getLong("memory"));
+        }
+        if (caseInfo.getMessage() == null) {
+            caseInfo.setMessage("无");
         }
         caseInfo.setCaseId(caseId);
         return caseInfo;

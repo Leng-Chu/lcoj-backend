@@ -51,10 +51,4 @@ public class CaseInfo {
      * 错误信息
      */
     private String message;
-
-    /**
-     * 数据信息
-     */
-    private String dataMessage;
-
 }
