@@ -2,7 +2,6 @@ package com.lc.oj.utils;
 
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -31,7 +30,6 @@ public class OkHttpUtils {
     public static String post(String url, String json, Headers headers) throws IOException {
         RequestBody body = RequestBody.create(JSON, json);
         headers.newBuilder().add("Content-Type", "application/json");
-        log.info(headers.toString());
         //打印格式化的json
         //log.info(JSONUtil.parseObj(json).toStringPretty());
         Request request = new Request.Builder()
@@ -43,11 +41,14 @@ public class OkHttpUtils {
         return getString(request);
     }
 
-    @NotNull
     private static String getString(Request request) throws IOException {
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                throw new IOException("Unexpected code " + response);
+                if (response.code() == 429) {
+                    return null; //判题次数超限
+                } else {
+                    throw new IOException("Unexpected code " + response);
+                }
             }
             if (response.body() == null) {
                 throw new IOException("Response body is null.");

@@ -34,8 +34,9 @@ public abstract class BaseStrategyAbstract implements JudgeStrategy {
     protected final Map<String, Integer> languageId = new HashMap<>(3);
     protected final Map<String, String> compilerOptions = new HashMap<>(3);
     private final String dataPath;
-    private final Headers headers;
-    private final String url;
+    private final String tempUrl;
+    private String url;
+    private Headers headers;
 
     public BaseStrategyAbstract(JudgeProperties judgeProperties) {
         this.dataPath = judgeProperties.getDataPath();
@@ -45,9 +46,11 @@ public abstract class BaseStrategyAbstract implements JudgeStrategy {
                     .add("x-rapidapi-host", judgeProperties.getXRapidapiHost())
                     .add("x-rapidapi-key", judgeProperties.getXRapidapiKey())
                     .build();
+            this.tempUrl = judgeProperties.getLocalUrl();
         } else {
             this.url = judgeProperties.getLocalUrl();
             this.headers = new Headers.Builder().build();
+            this.tempUrl = "";
         }
         languageId.put("cpp", 54);
         languageId.put("java", 62);
@@ -93,9 +96,14 @@ public abstract class BaseStrategyAbstract implements JudgeStrategy {
     protected CaseInfo doJudgeOnce(CodeSandboxRequest codeSandboxRequest, int caseId) throws Exception {
 
         String tokenStr = OkHttpUtils.post(url, JSONUtil.toJsonStr(codeSandboxRequest), headers);
+        if (tokenStr == null) {
+            url = tempUrl;
+            headers = new Headers.Builder().build();
+            tokenStr = OkHttpUtils.post(url, JSONUtil.toJsonStr(codeSandboxRequest), headers);
+        }
         JSONObject tokenObject = JSONUtil.parseObj(tokenStr);
         String token = tokenObject.getStr("token");
-        log.info("提交一次判题，token: {}, caseId: {}", token, caseId);
+        log.info("提交一次判题，token: {}, caseId: {}, url: {}", token, caseId, url);
         JSONObject responseObject;
         String status;
         do {
