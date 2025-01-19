@@ -19,21 +19,25 @@ public class OkHttpUtils {
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
 
-    public static String get(String url) throws IOException {
+    public static String get(String url, Headers headers) throws IOException {
         Request request = new Request.Builder()
                 .url(url)
+                .headers(headers)
                 .build();
 
         return getString(request);
     }
 
-    public static String post(String url, String json) throws IOException {
+    public static String post(String url, String json, Headers headers) throws IOException {
         RequestBody body = RequestBody.create(JSON, json);
+        headers.newBuilder().add("Content-Type", "application/json");
+        log.info(headers.toString());
         //打印格式化的json
         //log.info(JSONUtil.parseObj(json).toStringPretty());
         Request request = new Request.Builder()
                 .url(url)
                 .post(body)
+                .headers(headers)
                 .build();
 
         return getString(request);

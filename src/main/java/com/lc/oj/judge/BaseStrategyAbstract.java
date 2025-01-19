@@ -13,6 +13,7 @@ import com.lc.oj.properties.JudgeProperties;
 import com.lc.oj.utils.Base64Utils;
 import com.lc.oj.utils.OkHttpUtils;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.Headers;
 
 import java.io.File;
 import java.io.IOException;
@@ -32,10 +33,22 @@ public abstract class BaseStrategyAbstract implements JudgeStrategy {
     protected static final int MAX_LENGTH = 1000;
     protected final Map<String, Integer> languageId = new HashMap<>(3);
     protected final Map<String, String> compilerOptions = new HashMap<>(3);
-    private final JudgeProperties judgeProperties;
+    private final String dataPath;
+    private final Headers headers;
+    private final String url;
 
     public BaseStrategyAbstract(JudgeProperties judgeProperties) {
-        this.judgeProperties = judgeProperties;
+        this.dataPath = judgeProperties.getDataPath();
+        if (judgeProperties.isRapidApi()) {
+            this.url = judgeProperties.getApiUrl();
+            this.headers = new Headers.Builder()
+                    .add("x-rapidapi-host", judgeProperties.getXRapidapiHost())
+                    .add("x-rapidapi-key", judgeProperties.getXRapidapiKey())
+                    .build();
+        } else {
+            this.url = judgeProperties.getLocalUrl();
+            this.headers = new Headers.Builder().build();
+        }
         languageId.put("cpp", 54);
         languageId.put("java", 62);
         languageId.put("python", 71);
@@ -78,7 +91,8 @@ public abstract class BaseStrategyAbstract implements JudgeStrategy {
 
     // 调用代码沙箱对一组数据进行判题
     protected CaseInfo doJudgeOnce(CodeSandboxRequest codeSandboxRequest, int caseId) throws Exception {
-        String tokenStr = OkHttpUtils.post(judgeProperties.getCodesandboxUrl(), JSONUtil.toJsonStr(codeSandboxRequest));
+
+        String tokenStr = OkHttpUtils.post(url, JSONUtil.toJsonStr(codeSandboxRequest), headers);
         JSONObject tokenObject = JSONUtil.parseObj(tokenStr);
         String token = tokenObject.getStr("token");
         log.info("提交一次判题，token: {}, caseId: {}", token, caseId);
@@ -86,8 +100,8 @@ public abstract class BaseStrategyAbstract implements JudgeStrategy {
         String status;
         do {
             Thread.sleep(1000); // 每1000ms查询一次结果
-            String resultURL = judgeProperties.getCodesandboxUrl() + "/" + token + "?base64_encoded=true"; // 通过token获取结果
-            String resultStr = OkHttpUtils.get(resultURL);
+            String resultURL = url + "/" + token + "?base64_encoded=true"; // 通过token获取结果
+            String resultStr = OkHttpUtils.get(resultURL, headers);
             responseObject = JSONUtil.parseObj(resultStr);
             status = responseObject.getJSONObject("status").getStr("description");
         } while ("In Queue".equals(status)
@@ -157,7 +171,7 @@ public abstract class BaseStrategyAbstract implements JudgeStrategy {
 
         //1. 调用loadData方法，将测试数据加载到inputList和outputList中
         try {
-            loadData(inputList, outputList, judgeProperties.getDataPath() + strategyRequest.getNum());
+            loadData(inputList, outputList, dataPath + strategyRequest.getNum());
         } catch (Exception e) {
             log.info("测试数据读取异常", e);
             StrategyResponse response = new StrategyResponse();

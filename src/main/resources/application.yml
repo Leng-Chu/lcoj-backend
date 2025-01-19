@@ -76,7 +76,11 @@ knife4j:
 lcoj:
   judge:
     data-path: "xxx"
-    codesandbox-url: "xxx"
+    rapid-api: true
+    local-url: "xxx"
+    api-url: "xxx"
+    x-rapidapi-key: "xxx"
+    x-rapidapi-host: "xxx"
   threadpool:
     core-pool-size: 5
     max-pool-size: 10

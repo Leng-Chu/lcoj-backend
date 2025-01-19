@@ -273,18 +273,24 @@ public class QuestionController {
         Page<Question> questionPage = questionService.page(new Page<>(current, size),
                 questionService.getQueryWrapper(questionQueryRequest));
         Page<QuestionListVO> questionVOPage = questionService.getQuestionVOPage(questionPage);
-        final User loginUser = userService.getLoginUser(request);
-        String acceptKey = RedisConstant.QUESTION_ACCEPT_KEY + loginUser.getId();
-        String failKey = RedisConstant.QUESTION_FAIL_KEY + loginUser.getId();
-        questionVOPage.getRecords().forEach(questionVO -> {
-            if (Boolean.TRUE.equals(template.opsForSet().isMember(acceptKey, questionVO.getId().toString()))) {
-                questionVO.setStatus(QuestionAcceptEnum.ACCEPT.getValue());
-            } else if (Boolean.TRUE.equals(template.opsForSet().isMember(failKey, questionVO.getId().toString()))) {
-                questionVO.setStatus(QuestionAcceptEnum.UNACCEPT.getValue());
-            } else {
+        final User loginUser = userService.getLoginUserPermitNull(request);
+        if (loginUser != null) {
+            String acceptKey = RedisConstant.QUESTION_ACCEPT_KEY + loginUser.getId();
+            String failKey = RedisConstant.QUESTION_FAIL_KEY + loginUser.getId();
+            questionVOPage.getRecords().forEach(questionVO -> {
+                if (Boolean.TRUE.equals(template.opsForSet().isMember(acceptKey, questionVO.getId().toString()))) {
+                    questionVO.setStatus(QuestionAcceptEnum.ACCEPT.getValue());
+                } else if (Boolean.TRUE.equals(template.opsForSet().isMember(failKey, questionVO.getId().toString()))) {
+                    questionVO.setStatus(QuestionAcceptEnum.UNACCEPT.getValue());
+                } else {
+                    questionVO.setStatus(QuestionAcceptEnum.NEVER.getValue());
+                }
+            });
+        } else {
+            questionVOPage.getRecords().forEach(questionVO -> {
                 questionVO.setStatus(QuestionAcceptEnum.NEVER.getValue());
-            }
-        });
+            });
+        }
         return ResultUtils.success(questionVOPage);
     }
 

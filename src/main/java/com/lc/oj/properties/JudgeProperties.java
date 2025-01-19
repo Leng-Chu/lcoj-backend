@@ -9,5 +9,9 @@ import org.springframework.stereotype.Component;
 @Data
 public class JudgeProperties {
     private String dataPath;
-    private String codesandboxUrl;
+    private boolean rapidApi;
+    private String localUrl;
+    private String apiUrl;
+    private String xRapidapiKey;
+    private String xRapidapiHost;
 }

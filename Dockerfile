@@ -1,13 +1,11 @@
-# Docker 镜像构建
-FROM maven:3.8.1-jdk-8-slim as builder
+FROM openjdk:8-jdk-alpine
 
 # Copy local code to the container image.
 WORKDIR /app
-COPY pom.xml .
-COPY src ./src
 
-# Build a release artifact.
-RUN mvn package -DskipTests
+COPY lcoj-backend-0.0.1-SNAPSHOT.jar /app/lcoj-backend-0.0.1-SNAPSHOT.jar
+
+EXPOSE 8101
 
 # Run the web service on container startup.
-CMD ["java","-jar","/app/target/lcoj-backend-0.0.1-SNAPSHOT.jar","--spring.profiles.active=prod"]
+CMD ["java", "-jar", "/app/lcoj-backend-0.0.1-SNAPSHOT.jar","--spring.profiles.active=prod"]
