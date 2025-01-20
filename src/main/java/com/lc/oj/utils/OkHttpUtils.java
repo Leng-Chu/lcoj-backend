@@ -44,7 +44,7 @@ public class OkHttpUtils {
     private static String getString(Request request) throws IOException {
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                if (response.code() == 429) {
+                if (response.code() == 429 || response.code() == 401) {
                     return null; //判题次数超限
                 } else {
                     throw new IOException("Unexpected code " + response);

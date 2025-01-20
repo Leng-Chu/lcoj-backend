@@ -73,12 +73,26 @@ public class JudgeServiceImpl implements IJudgeService {
         // 4）使用redis存储每个人通过的题目集合
         String acceptKey = RedisConstant.QUESTION_ACCEPT_KEY + questionSubmit.getUserId();
         String failKey = RedisConstant.QUESTION_FAIL_KEY + questionSubmit.getUserId();
+        String rejudge = template.opsForValue().get(RedisConstant.REJUDGE_KEY + questionSubmit.getId());
+        Integer oldResult = null;
+        if (rejudge != null) {
+            oldResult = Integer.parseInt(rejudge);
+            template.opsForValue().getOperations().delete(RedisConstant.REJUDGE_KEY + questionSubmit.getId());
+        }
         if (Objects.equals(strategyResponse.getJudgeResult(), JudgeResultEnum.ACCEPTED.getValue())) {
-            question.setAcceptedNum(question.getAcceptedNum() + 1);
+            if (oldResult == null || !oldResult.equals(JudgeResultEnum.ACCEPTED.getValue())) {
+                // 如果是第一次提交，通过数+1；重判时，如果之前没有通过，那么通过数+1
+                question.setAcceptedNum(question.getAcceptedNum() + 1);
+            }
             questionService.updateById(question);
             // 设置这道题为通过
             template.opsForSet().add(acceptKey, question.getId().toString());
         } else {
+            if (oldResult != null && oldResult.equals(JudgeResultEnum.ACCEPTED.getValue())) {
+                // 如果之前通过了，现在没通过，那么通过数-1
+                question.setAcceptedNum(question.getAcceptedNum() - 1);
+                questionService.updateById(question);
+            }
             if (Boolean.FALSE.equals(template.opsForSet().isMember(acceptKey, question.getId().toString()))) {
                 template.opsForSet().add(failKey, question.getId().toString());
             }
@@ -86,13 +100,23 @@ public class JudgeServiceImpl implements IJudgeService {
     }
 
     @Override
-    public void checkSubmit(long questionSubmitId) {
+    public void checkSubmit(long questionSubmitId) throws Exception {
         QuestionSubmit questionSubmit = questionSubmitService.getById(questionSubmitId);
+        if (questionSubmit == null) {
+            //休眠一段时间，然后重试
+            Thread.sleep(1000);
+            questionSubmit = questionSubmitService.getById(questionSubmitId);
+        }
         if (questionSubmit == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "提交信息不存在");
         }
         Long questionId = questionSubmit.getQuestionId();
         Question question = questionService.getById(questionId);
+        if (question == null) {
+            //休眠一段时间，然后重试
+            Thread.sleep(1000);
+            question = questionService.getById(questionId);
+        }
         if (question == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "题目不存在");
         }

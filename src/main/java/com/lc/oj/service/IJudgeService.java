@@ -12,5 +12,5 @@ public interface IJudgeService {
      */
     void doJudge(long questionSubmitId);
 
-    void checkSubmit(long questionSubmitId);
+    void checkSubmit(long questionSubmitId) throws Exception;
 }

@@ -7,6 +7,7 @@ import com.lc.oj.annotation.AuthCheck;
 import com.lc.oj.common.BaseResponse;
 import com.lc.oj.common.ErrorCode;
 import com.lc.oj.common.ResultUtils;
+import com.lc.oj.constant.RedisConstant;
 import com.lc.oj.constant.UserConstant;
 import com.lc.oj.exception.BusinessException;
 import com.lc.oj.message.MessageProducer;
@@ -18,6 +19,7 @@ import com.lc.oj.model.vo.QuestionSubmitVO;
 import com.lc.oj.service.IQuestionSubmitService;
 import com.lc.oj.service.IUserService;
 import com.lc.oj.websocket.WebSocketServer;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -46,6 +48,8 @@ public class QuestionSubmitController {
     private MessageProducer messageProducer;
     @Resource
     private WebSocketServer webSocketServer;
+    @Resource
+    private StringRedisTemplate template;
 
     /**
      * 提交题目
@@ -97,6 +101,11 @@ public class QuestionSubmitController {
         if (questionSubmitId == null || questionSubmitId <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
+        QuestionSubmit questionSubmit = questionSubmitService.getById(questionSubmitId);
+        if (questionSubmit == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        template.opsForValue().set(RedisConstant.REJUDGE_KEY + questionSubmitId, String.valueOf(questionSubmit.getJudgeResult()));
         UpdateWrapper<QuestionSubmit> updateWrapper = new UpdateWrapper<>();
         updateWrapper.set("judgeResult", 0)
                 .set("maxTime", null)
