@@ -4,6 +4,8 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 @ConfigurationProperties(prefix = "lcoj.judge")
 @Data
@@ -12,6 +14,6 @@ public class JudgeProperties {
     private boolean rapidApi;
     private String localUrl;
     private String apiUrl;
-    private String xRapidapiKey;
+    private List<String> xRapidapiKey;
     private String xRapidapiHost;
 }

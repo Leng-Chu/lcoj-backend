@@ -21,6 +21,7 @@ import com.lc.oj.model.enums.QuestionAcceptEnum;
 import com.lc.oj.model.vo.QuestionListVO;
 import com.lc.oj.model.vo.QuestionManageVO;
 import com.lc.oj.model.vo.QuestionVO;
+import com.lc.oj.service.IJudgeService;
 import com.lc.oj.service.IQuestionService;
 import com.lc.oj.service.IQuestionSubmitService;
 import com.lc.oj.service.IUserService;
@@ -59,11 +60,32 @@ public class QuestionController {
     @Resource
     private IUserService userService;
     @Resource
+    private IJudgeService judgeService;
+    @Resource
     private StringRedisTemplate template;
     @Resource
     private WebSocketServer webSocketServer;
     @Value("${lcoj.judge.data-path}")
     private String dataPath;
+
+
+    /**
+     * 创建（仅管理员）
+     *
+     * @param questionAdminAddRequest
+     * @return
+     */
+    @PostMapping("/admin/add")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Long> adminAddQuestion(@RequestBody QuestionAdminAddRequest questionAdminAddRequest) {
+        Question question = new Question();
+        BeanUtils.copyProperties(questionAdminAddRequest, question);
+        boolean result = questionService.save(question);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "插入数据库失败");
+        long newQuestionId = question.getId();
+        return ResultUtils.success(newQuestionId);
+    }
+
 
     /**
      * 创建
@@ -321,5 +343,21 @@ public class QuestionController {
     public BaseResponse<Long> getNextNum() {
         Long nextNum = questionService.getNextNum();
         return ResultUtils.success(nextNum);
+    }
+
+    /**
+     * 造某道题的输出数据
+     *
+     * @return
+     */
+    @PostMapping("/create-output")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> createOutputFiles(@RequestParam Long num) {
+        if (num == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Thread thread = new Thread(() -> judgeService.createOutput(num));
+        thread.start();
+        return ResultUtils.success(true);
     }
 }

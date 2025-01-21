@@ -1,9 +1,11 @@
 package com.lc.oj.service.impl;
 
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.lc.oj.common.ErrorCode;
 import com.lc.oj.constant.RedisConstant;
 import com.lc.oj.exception.BusinessException;
+import com.lc.oj.judge.CreateOutputStrategy;
 import com.lc.oj.judge.JudgeStrategy;
 import com.lc.oj.judge.NormalStrategy;
 import com.lc.oj.model.dto.judge.StrategyRequest;
@@ -119,6 +121,41 @@ public class JudgeServiceImpl implements IJudgeService {
         }
         if (question == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "题目不存在");
+        }
+    }
+
+    @Override
+    public void createOutput(long questionNum) {
+        Question question = questionService.getOne(new QueryWrapper<Question>().eq("num", questionNum));
+        String strNum = ":" + questionNum;
+        if (question == null) {
+            webSocketServer.sendToSpecificClients("生成输出数据失败：题目不存在", strNum);
+            return;
+        }
+        String answer = question.getAnswer();
+        if (answer == null || answer.isEmpty()) {
+            webSocketServer.sendToSpecificClients("生成输出数据失败：标程不能为空", strNum);
+            return;
+        }
+        String language = question.getLanguage();
+        if (!"cpp".equals(language) && !"java".equals(language) && !"python".equals(language)) {
+            webSocketServer.sendToSpecificClients("生成输出数据失败：编程语言不合法", strNum);
+            return;
+        }
+        StrategyRequest strategyRequest = StrategyRequest.builder()
+                .code(answer)
+                .language(language)
+                .num(questionNum)
+                .judgeConfig(JSONUtil.toBean(question.getJudgeConfig(), JudgeConfig.class))
+                .build();
+        webSocketServer.sendToSpecificClients("等待生成输出数据", strNum);
+        JudgeStrategy judgeStrategy = new CreateOutputStrategy(judgeProperties);
+        StrategyResponse strategyResponse = judgeStrategy.doJudgeWithStrategy(strategyRequest);
+        Integer result = strategyResponse.getJudgeResult();
+        if (!Objects.equals(result, JudgeResultEnum.ACCEPTED.getValue())) {
+            webSocketServer.sendToSpecificClients("生成输出数据失败：" + JudgeResultEnum.getEnumByValue(result).getText(), strNum);
+        } else {
+            webSocketServer.sendToSpecificClients("生成输出数据成功", strNum);
         }
     }
 }

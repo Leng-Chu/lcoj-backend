@@ -48,7 +48,7 @@ public class WebSocketServer {
      */
     @OnClose
     public void onClose(@PathParam("sid") String sid) {
-        System.out.println("连接断开:" + sid);
+        System.out.println("客户端：" + sid + "断开连接");
         sessionMap.remove(sid);
     }
 
@@ -69,4 +69,20 @@ public class WebSocketServer {
         }
     }
 
+    /**
+     * 向id含有指定str的客户端发送消息
+     *
+     * @param message
+     */
+    public void sendToSpecificClients(String message, String str) {
+        for (Map.Entry<String, Session> entry : sessionMap.entrySet()) {
+            if (entry.getKey().contains(str)) {
+                try {
+                    entry.getValue().getBasicRemote().sendText(message);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 }
