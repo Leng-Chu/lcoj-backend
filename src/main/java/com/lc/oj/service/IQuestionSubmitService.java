@@ -7,6 +7,7 @@ import com.lc.oj.model.dto.questionsubmit.QuestionSubmitAddRequest;
 import com.lc.oj.model.dto.questionsubmit.QuestionSubmitQueryRequest;
 import com.lc.oj.model.entity.QuestionSubmit;
 import com.lc.oj.model.entity.User;
+import com.lc.oj.model.vo.QuestionSubmitCountVO;
 import com.lc.oj.model.vo.QuestionSubmitVO;
 
 /**
@@ -52,4 +53,12 @@ public interface IQuestionSubmitService extends IService<QuestionSubmit> {
      * @return
      */
     Page<QuestionSubmitVO> getQuestionSubmitVOPage(Page<QuestionSubmit> questionSubmitPage, User loginUser);
+
+    /**
+     * 统计用户提交情况
+     *
+     * @param userName
+     * @return
+     */
+    QuestionSubmitCountVO countQuestionSubmissions(String userName);
 }

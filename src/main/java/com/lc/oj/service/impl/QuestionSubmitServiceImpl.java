@@ -15,6 +15,7 @@ import com.lc.oj.model.entity.QuestionSubmit;
 import com.lc.oj.model.entity.User;
 import com.lc.oj.model.enums.JudgeResultEnum;
 import com.lc.oj.model.enums.QuestionSubmitLanguageEnum;
+import com.lc.oj.model.vo.QuestionSubmitCountVO;
 import com.lc.oj.model.vo.QuestionSubmitVO;
 import com.lc.oj.service.IQuestionService;
 import com.lc.oj.service.IQuestionSubmitService;
@@ -48,6 +49,8 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
     private IUserService userService;
     @Resource
     private WebSocketServer webSocketServer;
+    @Resource
+    private QuestionSubmitMapper questionSubmitMapper;
 
     /**
      * 提交题目
@@ -152,5 +155,16 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
                 .collect(Collectors.toList());
         questionSubmitVOPage.setRecords(questionSubmitVOList);
         return questionSubmitVOPage;
+    }
+
+    /**
+     * 统计用户提交情况
+     *
+     * @param userName
+     * @return
+     */
+    @Override
+    public QuestionSubmitCountVO countQuestionSubmissions(String userName) {
+        return questionSubmitMapper.countQuestionSubmissions(userName);
     }
 }

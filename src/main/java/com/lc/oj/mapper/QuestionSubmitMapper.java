@@ -2,6 +2,8 @@ package com.lc.oj.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lc.oj.model.entity.QuestionSubmit;
+import com.lc.oj.model.vo.QuestionSubmitCountVO;
+import org.apache.ibatis.annotations.Param;
 
 /**
  * <p>
@@ -12,5 +14,5 @@ import com.lc.oj.model.entity.QuestionSubmit;
  * @since 2024-12-27
  */
 public interface QuestionSubmitMapper extends BaseMapper<QuestionSubmit> {
-
+    QuestionSubmitCountVO countQuestionSubmissions(@Param("userName") String userName);
 }

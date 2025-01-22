@@ -87,14 +87,16 @@ public class JudgeServiceImpl implements IJudgeService {
                 question.setAcceptedNum(question.getAcceptedNum() + 1);
             }
             questionService.updateById(question);
-            // 设置这道题为通过
+            // 设置这道题为通过，并从失败集合中删除
             template.opsForSet().add(acceptKey, question.getId().toString());
+            template.opsForSet().remove(failKey, question.getId().toString());
         } else {
             if (oldResult != null && oldResult.equals(JudgeResultEnum.ACCEPTED.getValue())) {
-                // 如果之前通过了，现在没通过，那么通过数-1
+                // 重判时，如果之前通过了，现在没通过，那么通过数-1
                 question.setAcceptedNum(question.getAcceptedNum() - 1);
                 questionService.updateById(question);
             }
+            // 如果此人之前通过了这道题，那么忽略；否则，添加到失败集合
             if (Boolean.FALSE.equals(template.opsForSet().isMember(acceptKey, question.getId().toString()))) {
                 template.opsForSet().add(failKey, question.getId().toString());
             }
@@ -126,7 +128,9 @@ public class JudgeServiceImpl implements IJudgeService {
 
     @Override
     public void createOutput(long questionNum) {
-        Question question = questionService.getOne(new QueryWrapper<Question>().eq("num", questionNum));
+        QueryWrapper<Question> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("num", questionNum);
+        Question question = questionService.getOne(queryWrapper);
         String strNum = ":" + questionNum;
         if (question == null) {
             webSocketServer.sendToSpecificClients("生成输出数据失败：题目不存在", strNum);

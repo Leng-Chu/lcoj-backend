@@ -24,4 +24,17 @@
         id, language, code, judgeResult, maxTime, maxMemory, caseInfoList, questionId, questionNum, questionTitle, userId, userName, createTime, updateTime, isDelete
     </sql>
 
+    <select id="countQuestionSubmissions" resultType="com.lc.oj.model.vo.QuestionSubmitCountVO">
+        SELECT COUNT(*)                                         AS submitCount,
+               SUM(CASE WHEN judgeResult = 1 THEN 1 ELSE 0 END) AS acceptCount,
+               SUM(CASE WHEN judgeResult = 2 THEN 1 ELSE 0 END) AS wrongCount,
+               SUM(CASE WHEN judgeResult = 5 THEN 1 ELSE 0 END) AS timeLimitCount,
+               SUM(CASE WHEN judgeResult = 6 THEN 1 ELSE 0 END) AS memoryLimitCount,
+               SUM(CASE WHEN judgeResult = 3 THEN 1 ELSE 0 END) AS compileErrorCount,
+               SUM(CASE WHEN judgeResult = 4 THEN 1 ELSE 0 END) AS runtimeErrorCount
+        FROM question_submit
+        WHERE userName = #{userName}
+    </select>
+
+
 </mapper>

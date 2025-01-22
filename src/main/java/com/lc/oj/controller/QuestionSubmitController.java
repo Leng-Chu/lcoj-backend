@@ -15,6 +15,7 @@ import com.lc.oj.model.dto.questionsubmit.QuestionSubmitAddRequest;
 import com.lc.oj.model.dto.questionsubmit.QuestionSubmitQueryRequest;
 import com.lc.oj.model.entity.QuestionSubmit;
 import com.lc.oj.model.entity.User;
+import com.lc.oj.model.vo.QuestionSubmitCountVO;
 import com.lc.oj.model.vo.QuestionSubmitVO;
 import com.lc.oj.service.IQuestionSubmitService;
 import com.lc.oj.service.IUserService;
@@ -118,5 +119,20 @@ public class QuestionSubmitController {
             messageProducer.sendJudgeMessage(questionSubmitId);
         }
         return ResultUtils.success(b);
+    }
+
+    /**
+     * 获取某人提交记录计数
+     *
+     * @param userName
+     * @return
+     */
+    @PostMapping("/count")
+    public BaseResponse<QuestionSubmitCountVO> countQuestionSubmit(String userName) {
+        if (userName == null || userName.isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        QuestionSubmitCountVO countVO = questionSubmitService.countQuestionSubmissions(userName);
+        return ResultUtils.success(countVO);
     }
 }

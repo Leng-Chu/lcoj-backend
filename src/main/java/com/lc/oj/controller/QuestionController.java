@@ -37,8 +37,11 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -359,5 +362,49 @@ public class QuestionController {
         Thread thread = new Thread(() -> judgeService.createOutput(num));
         thread.start();
         return ResultUtils.success(true);
+    }
+
+    /**
+     * 获取当前用户通过的题目
+     *
+     * @param request
+     * @return
+     */
+    @GetMapping("/accept")
+    public BaseResponse<List<Question>> getAcceptQuestion(HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        String acceptKey = RedisConstant.QUESTION_ACCEPT_KEY + loginUser.getId();
+        Set<String> strIds = template.opsForSet().members(acceptKey);
+        if (strIds == null) {
+            return ResultUtils.success(new ArrayList<>());
+        } else {
+            Set<Long> ids = strIds.stream().map(Long::valueOf).collect(Collectors.toSet());
+            QueryWrapper<Question> queryWrapper = new QueryWrapper<>();
+            queryWrapper.select("id", "num").in("id", ids).orderByAsc("num");
+            List<Question> questionList = questionService.list(queryWrapper);
+            return ResultUtils.success(questionList);
+        }
+    }
+
+    /**
+     * 获取当前用户未通过的题目
+     *
+     * @param request
+     * @return
+     */
+    @GetMapping("/fail")
+    public BaseResponse<List<Question>> getFailQuestion(HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        String failKey = RedisConstant.QUESTION_FAIL_KEY + loginUser.getId();
+        Set<String> strIds = template.opsForSet().members(failKey);
+        if (strIds == null) {
+            return ResultUtils.success(new ArrayList<>());
+        } else {
+            Set<Long> ids = strIds.stream().map(Long::valueOf).collect(Collectors.toSet());
+            QueryWrapper<Question> queryWrapper = new QueryWrapper<>();
+            queryWrapper.select("id", "num").in("id", ids).orderByAsc("num");
+            List<Question> questionList = questionService.list(queryWrapper);
+            return ResultUtils.success(questionList);
+        }
     }
 }
