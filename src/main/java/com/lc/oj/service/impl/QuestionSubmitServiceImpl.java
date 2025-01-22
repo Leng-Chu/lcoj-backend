@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lc.oj.common.ErrorCode;
 import com.lc.oj.constant.CommonConstant;
+import com.lc.oj.constant.RedisConstant;
 import com.lc.oj.exception.BusinessException;
 import com.lc.oj.mapper.QuestionSubmitMapper;
 import com.lc.oj.message.MessageProducer;
@@ -24,11 +25,13 @@ import com.lc.oj.utils.SqlUtils;
 import com.lc.oj.websocket.WebSocketServer;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -51,6 +54,8 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
     private WebSocketServer webSocketServer;
     @Resource
     private QuestionSubmitMapper questionSubmitMapper;
+    @Resource
+    private StringRedisTemplate template;
 
     /**
      * 提交题目
@@ -62,6 +67,11 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
     @Override
     @Transactional
     public long doQuestionSubmit(QuestionSubmitAddRequest questionSubmitAddRequest, User loginUser) {
+        // 校验该用户是否有正在评测的题目
+        String value = template.opsForValue().get(RedisConstant.QUESTION_SUBMIT_KEY + loginUser.getId());
+        if (StringUtils.isNotBlank(value)) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "您有正在评测的题目，请勿重复提交");
+        }
         // 校验编程语言是否合法
         String language = questionSubmitAddRequest.getLanguage();
         QuestionSubmitLanguageEnum languageEnum = QuestionSubmitLanguageEnum.getEnumByValue(language);
@@ -76,7 +86,6 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         }
         question.setSubmitNum(question.getSubmitNum() + 1);
         questionService.updateById(question);
-        // 是否已提交题目
         // 每个用户串行提交题目
         QuestionSubmit questionSubmit = new QuestionSubmit();
         questionSubmit.setUserId(loginUser.getId());
@@ -94,6 +103,8 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         Long questionSubmitId = questionSubmit.getId();
         webSocketServer.sendToAllClient("添加提交记录: " + questionSubmitId);
         messageProducer.sendJudgeMessage(questionSubmitId);
+        // 设置提交记录的有效期为 60 秒
+        template.opsForValue().set(RedisConstant.QUESTION_SUBMIT_KEY + loginUser.getId(), String.valueOf(questionSubmitId), 60, TimeUnit.SECONDS);
         return questionSubmitId;
     }
 

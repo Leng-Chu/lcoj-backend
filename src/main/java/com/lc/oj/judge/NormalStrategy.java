@@ -81,7 +81,12 @@ public class NormalStrategy extends BaseStrategyAbstract {
             futures.add(executorService.submit(task));
         }
         for (Future<CaseInfo> future : futures) {
-            CaseInfo caseInfo = future.get(20, TimeUnit.SECONDS);
+            CaseInfo caseInfo = null;
+            try {
+                caseInfo = future.get(60, TimeUnit.SECONDS);
+            } catch (TimeoutException e) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "评测超时");
+            }
             caseInfoList.add(caseInfo);
         }
         caseInfoList.sort(Comparator.comparing(CaseInfo::getCaseId));
