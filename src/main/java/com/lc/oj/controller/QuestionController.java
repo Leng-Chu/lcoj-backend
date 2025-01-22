@@ -375,7 +375,7 @@ public class QuestionController {
         User loginUser = userService.getLoginUser(request);
         String acceptKey = RedisConstant.QUESTION_ACCEPT_KEY + loginUser.getId();
         Set<String> strIds = template.opsForSet().members(acceptKey);
-        if (strIds == null) {
+        if (strIds == null || strIds.isEmpty()) {
             return ResultUtils.success(new ArrayList<>());
         } else {
             Set<Long> ids = strIds.stream().map(Long::valueOf).collect(Collectors.toSet());
