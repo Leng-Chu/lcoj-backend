@@ -397,7 +397,7 @@ public class QuestionController {
         User loginUser = userService.getLoginUser(request);
         String failKey = RedisConstant.QUESTION_FAIL_KEY + loginUser.getId();
         Set<String> strIds = template.opsForSet().members(failKey);
-        if (strIds == null) {
+        if (strIds == null || strIds.isEmpty()) {
             return ResultUtils.success(new ArrayList<>());
         } else {
             Set<Long> ids = strIds.stream().map(Long::valueOf).collect(Collectors.toSet());
