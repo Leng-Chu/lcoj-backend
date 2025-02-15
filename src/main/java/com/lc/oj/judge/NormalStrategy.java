@@ -63,10 +63,10 @@ public class NormalStrategy extends BaseStrategyAbstract {
         String language = strategyRequest.getLanguage();
         JudgeConfig judgeConfig = strategyRequest.getJudgeConfig();
         List<CaseInfo> caseInfoList = new ArrayList<>();
-        List<Future<CaseInfo>> futures = new ArrayList<>();
+        List<CompletableFuture<CaseInfo>> futures = new ArrayList<>();
         for (int i = 0; i < inputList.size(); i++) {
             final int index = i;
-            Callable<CaseInfo> task = () -> {
+            CompletableFuture<CaseInfo> future = CompletableFuture.supplyAsync(() -> {
                 CodeSandboxRequest codeSandboxRequest = CodeSandboxRequest.builder()
                         .source_code(code)
                         .language_id(languageId.get(language))
@@ -76,18 +76,31 @@ public class NormalStrategy extends BaseStrategyAbstract {
                         .stdin(inputList.get(index))
                         .expected_output(outputList.get(index))
                         .build();
-                return doJudgeOnce(codeSandboxRequest, index, false);
-            };
-            futures.add(executorService.submit(task));
+                try {
+                    return doJudgeOnce(codeSandboxRequest, index, false);
+                } catch (Exception e) {
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "评测失败: " + e);
+                }
+            }, executorService);
+            futures.add(future);
         }
-        for (Future<CaseInfo> future : futures) {
-            CaseInfo caseInfo = null;
-            try {
-                caseInfo = future.get(60, TimeUnit.SECONDS);
-            } catch (TimeoutException e) {
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "评测超时");
+        // 等待所有评测完成，限时60s
+        CompletableFuture<Void> allFutures = CompletableFuture.allOf(
+                futures.toArray(new CompletableFuture[0]));
+        try {
+            allFutures.get(60, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            // 如果超时或有一个线程抛异常，取消所有未完成的评测
+            for (CompletableFuture<CaseInfo> future : futures) {
+                future.cancel(true);
             }
-            caseInfoList.add(caseInfo);
+            if (e instanceof TimeoutException) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "评测超时");
+            } else throw e;
+        }
+        // 如果没有异常，获取所有评测结果
+        for (CompletableFuture<CaseInfo> future : futures) {
+            caseInfoList.add(future.get());
         }
         caseInfoList.sort(Comparator.comparing(CaseInfo::getCaseId));
         return caseInfoList;
