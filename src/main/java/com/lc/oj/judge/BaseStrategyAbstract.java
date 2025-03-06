@@ -127,9 +127,12 @@ public abstract class BaseStrategyAbstract implements JudgeStrategy {
         if (tokenStr == null) {
             if (tempUrl != null && !tempUrl.isEmpty()) {
                 url = tempUrl;
-            }
-            headers = new Headers.Builder().build();
-            tokenStr = OkHttpUtils.post(url, JSONUtil.toJsonStr(codeSandboxRequest), headers);
+                key = "lcoj-judge";
+                headers = new Headers.Builder()
+                        .add("auth", key)
+                        .build();
+                tokenStr = OkHttpUtils.post(url, JSONUtil.toJsonStr(codeSandboxRequest), headers);
+            } else throw new BusinessException(ErrorCode.SYSTEM_ERROR, "无可用判题机");
         }
         JSONObject tokenObject = JSONUtil.parseObj(tokenStr);
         String token = tokenObject.getStr("token");
@@ -151,8 +154,7 @@ public abstract class BaseStrategyAbstract implements JudgeStrategy {
         String stdout = Base64Utils.decode(responseObject.getStr("stdout"));
         // 为JudgeResult赋值
         if (status.contains("Runtime Error")) {
-            if (message.contains("137")) {
-                // 内存超限错误码为137
+            if (message.contains("137") || stderr.contains("OutOfMemoryError")) {
                 status = "Memory Limit Exceeded";
             } else {
                 status = "Runtime Error";
@@ -167,6 +169,8 @@ public abstract class BaseStrategyAbstract implements JudgeStrategy {
             caseInfo.setMessage(compileOutput);
         } else if (caseInfo.getJudgeResult().equals(JudgeResultEnum.RUNTIME_ERROR.getValue())) {
             caseInfo.setMessage(stderr);
+        } else if (caseInfo.getJudgeResult().equals(JudgeResultEnum.SYSTEM_ERROR.getValue())) {
+            caseInfo.setMessage(message);
         }
         if (needOutput) {
             // 造数据时为预期输出赋值

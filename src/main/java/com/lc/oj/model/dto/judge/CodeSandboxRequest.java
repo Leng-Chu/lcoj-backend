@@ -35,7 +35,7 @@ public class CodeSandboxRequest {
     /**
      * 内存限制（KB）
      */
-    private double memory_limit;
+    private Long memory_limit;
 
     /**
      * 编译选项
