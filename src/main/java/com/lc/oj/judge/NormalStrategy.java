@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.concurrent.*;
 
 @Slf4j
-@Component
+@Component("normal")
 public class NormalStrategy extends BaseStrategyAbstract {
 
     ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());

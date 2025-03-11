@@ -5,16 +5,14 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.lc.oj.common.ErrorCode;
 import com.lc.oj.constant.RedisConstant;
 import com.lc.oj.exception.BusinessException;
-import com.lc.oj.judge.CreateOutputStrategy;
 import com.lc.oj.judge.JudgeStrategy;
-import com.lc.oj.judge.NormalStrategy;
+import com.lc.oj.judge.JudgeStrategySelector;
 import com.lc.oj.model.dto.judge.StrategyRequest;
 import com.lc.oj.model.dto.judge.StrategyResponse;
 import com.lc.oj.model.dto.question.JudgeConfig;
 import com.lc.oj.model.entity.Question;
 import com.lc.oj.model.entity.QuestionSubmit;
 import com.lc.oj.model.enums.JudgeResultEnum;
-import com.lc.oj.properties.JudgeProperties;
 import com.lc.oj.service.IJudgeService;
 import com.lc.oj.service.IQuestionService;
 import com.lc.oj.service.IQuestionSubmitService;
@@ -40,10 +38,10 @@ public class JudgeServiceImpl implements IJudgeService {
     private StringRedisTemplate template;
 
     @Resource
-    private JudgeProperties judgeProperties;
+    private WebSocketServer webSocketServer;
 
     @Resource
-    private WebSocketServer webSocketServer;
+    private JudgeStrategySelector judgeStrategySelector;
 
     @Override
     public void doJudge(long questionSubmitId) {
@@ -57,11 +55,18 @@ public class JudgeServiceImpl implements IJudgeService {
                 .judgeConfig(JSONUtil.toBean(question.getJudgeConfig(), JudgeConfig.class))
                 .build();
         // 2）执行判题，普通判题策略
-        JudgeStrategy judgeStrategy = new NormalStrategy(judgeProperties);
-        StrategyResponse strategyResponse = judgeStrategy.doJudgeWithStrategy(strategyRequest);
+        StrategyResponse strategyResponse;
+        JudgeStrategy judgeStrategy = judgeStrategySelector.select("normal");
+        if (judgeStrategy == null) {
+            strategyResponse = new StrategyResponse();
+            strategyResponse.setJudgeResult(JudgeResultEnum.SYSTEM_ERROR.getValue());
+        } else {
+            strategyResponse = judgeStrategy.doJudgeWithStrategy(strategyRequest);
+        }
         if (Objects.equals(strategyResponse.getJudgeResult(), JudgeResultEnum.SYSTEM_ERROR.getValue())) {
             log.info("判题系统错误，questionSubmitId:{}", questionSubmitId);
         }
+
         // 3）修改数据库中的判题结果
         questionSubmit.setJudgeResult(strategyResponse.getJudgeResult());
         questionSubmit.setMaxTime(strategyResponse.getMaxTime());
@@ -154,13 +159,17 @@ public class JudgeServiceImpl implements IJudgeService {
                 .judgeConfig(JSONUtil.toBean(question.getJudgeConfig(), JudgeConfig.class))
                 .build();
         webSocketServer.sendToSpecificClients("等待生成输出数据", strNum);
-        JudgeStrategy judgeStrategy = new CreateOutputStrategy(judgeProperties);
-        StrategyResponse strategyResponse = judgeStrategy.doJudgeWithStrategy(strategyRequest);
-        Integer result = strategyResponse.getJudgeResult();
-        if (!Objects.equals(result, JudgeResultEnum.ACCEPTED.getValue())) {
-            webSocketServer.sendToSpecificClients("生成输出数据失败：" + JudgeResultEnum.getEnumByValue(result).getText(), strNum);
+        JudgeStrategy judgeStrategy = judgeStrategySelector.select("output");
+        if (judgeStrategy == null) {
+            webSocketServer.sendToSpecificClients("系统错误，生成输出数据失败", strNum);
         } else {
-            webSocketServer.sendToSpecificClients("生成输出数据成功", strNum);
+            StrategyResponse strategyResponse = judgeStrategy.doJudgeWithStrategy(strategyRequest);
+            Integer result = strategyResponse.getJudgeResult();
+            if (!Objects.equals(result, JudgeResultEnum.ACCEPTED.getValue())) {
+                webSocketServer.sendToSpecificClients("生成输出数据失败：" + JudgeResultEnum.getEnumByValue(result).getText(), strNum);
+            } else {
+                webSocketServer.sendToSpecificClients("生成输出数据成功", strNum);
+            }
         }
     }
 }

@@ -22,7 +22,7 @@ import java.util.Objects;
 import java.util.concurrent.*;
 
 @Slf4j
-@Component
+@Component("output")
 public class CreateOutputStrategy extends BaseStrategyAbstract {
 
     ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
