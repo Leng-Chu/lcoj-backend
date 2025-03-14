@@ -271,8 +271,8 @@ public class QuestionController {
         }
         QuestionVO questionVO = QuestionVO.objToVo(question);
         final User loginUser = userService.getLoginUser(request);
-        String acceptKey = RedisConstant.QUESTION_ACCEPT_KEY + loginUser.getId();
-        String failKey = RedisConstant.QUESTION_FAIL_KEY + loginUser.getId();
+        String acceptKey = RedisConstant.QUESTION_ACCEPT_KEY + loginUser.getUserName();
+        String failKey = RedisConstant.QUESTION_FAIL_KEY + loginUser.getUserName();
         if (Boolean.TRUE.equals(template.opsForSet().isMember(acceptKey, id.toString()))) {
             questionVO.setStatus(QuestionAcceptEnum.ACCEPT.getValue());
         } else if (Boolean.TRUE.equals(template.opsForSet().isMember(failKey, id.toString()))) {
@@ -300,8 +300,8 @@ public class QuestionController {
         Page<QuestionListVO> questionVOPage = questionService.getQuestionVOPage(questionPage);
         final User loginUser = userService.getLoginUserPermitNull(request);
         if (loginUser != null) {
-            String acceptKey = RedisConstant.QUESTION_ACCEPT_KEY + loginUser.getId();
-            String failKey = RedisConstant.QUESTION_FAIL_KEY + loginUser.getId();
+            String acceptKey = RedisConstant.QUESTION_ACCEPT_KEY + loginUser.getUserName();
+            String failKey = RedisConstant.QUESTION_FAIL_KEY + loginUser.getUserName();
             questionVOPage.getRecords().forEach(questionVO -> {
                 if (Boolean.TRUE.equals(template.opsForSet().isMember(acceptKey, questionVO.getId().toString()))) {
                     questionVO.setStatus(QuestionAcceptEnum.ACCEPT.getValue());
@@ -365,15 +365,14 @@ public class QuestionController {
     }
 
     /**
-     * 获取当前用户通过的题目
+     * 获取某用户通过的题目
      *
-     * @param request
+     * @param userName
      * @return
      */
     @GetMapping("/accept")
-    public BaseResponse<List<Question>> getAcceptQuestion(HttpServletRequest request) {
-        User loginUser = userService.getLoginUser(request);
-        String acceptKey = RedisConstant.QUESTION_ACCEPT_KEY + loginUser.getId();
+    public BaseResponse<List<Question>> getAcceptQuestion(String userName) {
+        String acceptKey = RedisConstant.QUESTION_ACCEPT_KEY + userName;
         Set<String> strIds = template.opsForSet().members(acceptKey);
         if (strIds == null || strIds.isEmpty()) {
             return ResultUtils.success(new ArrayList<>());
@@ -387,15 +386,14 @@ public class QuestionController {
     }
 
     /**
-     * 获取当前用户未通过的题目
+     * 获取某用户未通过的题目
      *
-     * @param request
+     * @param userName
      * @return
      */
     @GetMapping("/fail")
-    public BaseResponse<List<Question>> getFailQuestion(HttpServletRequest request) {
-        User loginUser = userService.getLoginUser(request);
-        String failKey = RedisConstant.QUESTION_FAIL_KEY + loginUser.getId();
+    public BaseResponse<List<Question>> getFailQuestion(String userName) {
+        String failKey = RedisConstant.QUESTION_FAIL_KEY + userName;
         Set<String> strIds = template.opsForSet().members(failKey);
         if (strIds == null || strIds.isEmpty()) {
             return ResultUtils.success(new ArrayList<>());

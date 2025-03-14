@@ -79,8 +79,8 @@ public class JudgeServiceImpl implements IJudgeService {
         webSocketServer.sendToAllClient("更新提交记录: " + questionSubmit.getId());
         // 4）使用redis存储每个人通过的题目集合，删掉redis中的提交记录
         template.opsForValue().getOperations().delete(RedisConstant.QUESTION_SUBMIT_KEY + questionSubmit.getUserId());
-        String acceptKey = RedisConstant.QUESTION_ACCEPT_KEY + questionSubmit.getUserId();
-        String failKey = RedisConstant.QUESTION_FAIL_KEY + questionSubmit.getUserId();
+        String acceptKey = RedisConstant.QUESTION_ACCEPT_KEY + questionSubmit.getUserName();
+        String failKey = RedisConstant.QUESTION_FAIL_KEY + questionSubmit.getUserName();
         String rejudge = template.opsForValue().get(RedisConstant.REJUDGE_KEY + questionSubmit.getId());
         Integer oldResult = null;
         if (rejudge != null) {
