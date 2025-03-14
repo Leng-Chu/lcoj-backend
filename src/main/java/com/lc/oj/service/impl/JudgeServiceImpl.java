@@ -107,6 +107,8 @@ public class JudgeServiceImpl implements IJudgeService {
                 template.opsForSet().add(failKey, question.getId().toString());
             }
         }
+        Long size = template.opsForSet().size(acceptKey);
+        template.opsForZSet().add(RedisConstant.USER_RANK_KEY, questionSubmit.getUserName(), size == null ? 0 : size);
     }
 
     @Override

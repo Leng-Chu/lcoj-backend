@@ -1,7 +1,9 @@
 package com.lc.oj.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lc.oj.model.entity.User;
+import com.lc.oj.model.vo.UserRankVO;
 import com.lc.oj.model.vo.UserVO;
 
 import javax.servlet.http.HttpServletRequest;
@@ -91,4 +93,12 @@ public interface IUserService extends IService<User> {
      */
     UserVO getUserVO(User user);
 
+    /**
+     * 分页获取用户排名信息
+     *
+     * @param current
+     * @param size
+     * @return
+     */
+    Page<UserRankVO> getRankVOPage(long current, long size);
 }

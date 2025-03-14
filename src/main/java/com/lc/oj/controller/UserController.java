@@ -1,11 +1,9 @@
 package com.lc.oj.controller;
 
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lc.oj.annotation.AuthCheck;
-import com.lc.oj.common.BaseResponse;
-import com.lc.oj.common.DeleteRequest;
-import com.lc.oj.common.ErrorCode;
-import com.lc.oj.common.ResultUtils;
+import com.lc.oj.common.*;
 import com.lc.oj.constant.UserConstant;
 import com.lc.oj.exception.BusinessException;
 import com.lc.oj.exception.ThrowUtils;
@@ -14,6 +12,7 @@ import com.lc.oj.model.dto.user.UserLoginRequest;
 import com.lc.oj.model.dto.user.UserRegisterRequest;
 import com.lc.oj.model.dto.user.UserUpdateRequest;
 import com.lc.oj.model.entity.User;
+import com.lc.oj.model.vo.UserRankVO;
 import com.lc.oj.model.vo.UserVO;
 import com.lc.oj.service.IUserService;
 import lombok.extern.slf4j.Slf4j;
@@ -171,5 +170,20 @@ public class UserController {
         boolean result = userService.updateById(user);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
+    }
+
+    /**
+     * 分页获取用户排名
+     *
+     * @return
+     */
+    @PostMapping("/rank")
+    public BaseResponse<Page<UserRankVO>> getRankByPage(PageRequest pageRequest) {
+        long current = pageRequest.getCurrent();
+        long size = pageRequest.getPageSize();
+        // 限制爬虫
+        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+        Page<UserRankVO> rankVOList = userService.getRankVOPage(current, size);
+        return ResultUtils.success(rankVOList);
     }
 }

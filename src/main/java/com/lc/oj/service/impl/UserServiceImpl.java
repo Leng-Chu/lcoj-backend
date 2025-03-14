@@ -1,21 +1,30 @@
 package com.lc.oj.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lc.oj.common.ErrorCode;
+import com.lc.oj.constant.RedisConstant;
 import com.lc.oj.exception.BusinessException;
 import com.lc.oj.mapper.UserMapper;
 import com.lc.oj.model.entity.User;
 import com.lc.oj.model.enums.UserRoleEnum;
+import com.lc.oj.model.vo.UserRankVO;
 import com.lc.oj.model.vo.UserVO;
 import com.lc.oj.service.IUserService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 import static com.lc.oj.constant.UserConstant.USER_LOGIN_STATE;
 
@@ -35,6 +44,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
      * 盐值，混淆密码
      */
     public static final String SALT = "lcoj";
+
+    @Resource
+    private StringRedisTemplate template;
 
     @Override
     public long userRegister(String userName, String userPassword, String checkPassword) {
@@ -197,6 +209,36 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         UserVO userVO = new UserVO();
         BeanUtils.copyProperties(user, userVO);
         return userVO;
+    }
+
+    /**
+     * 分页获取用户排名信息
+     *
+     * @param current
+     * @param size
+     * @return
+     */
+    @Override
+    public Page<UserRankVO> getRankVOPage(long current, long size) {
+        String key = RedisConstant.USER_RANK_KEY;
+        int x = (int) ((current - 1) * size);
+        int y = (int) (current * size - 1);
+        Set<ZSetOperations.TypedTuple<String>> set = template.opsForZSet().reverseRangeWithScores(key, x, y);
+        if (set != null) {
+            List<UserRankVO> rankVOList = new ArrayList<>();
+            for (ZSetOperations.TypedTuple<String> typedTuple : set) {
+                UserRankVO userRankVO = new UserRankVO();
+                userRankVO.setUserName(typedTuple.getValue());
+                userRankVO.setAcceptedNum(typedTuple.getScore().intValue());
+                userRankVO.setRank(++x);
+                rankVOList.add(userRankVO);
+            }
+            Page<UserRankVO> userRankVOPage = new Page<>();
+            userRankVOPage.setRecords(rankVOList);
+            userRankVOPage.setTotal(template.opsForZSet().zCard(key));
+            return userRankVOPage;
+        }
+        return null;
     }
 
 }

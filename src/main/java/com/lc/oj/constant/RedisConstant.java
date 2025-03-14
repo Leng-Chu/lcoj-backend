@@ -5,4 +5,5 @@ public interface RedisConstant {
     String REJUDGE_KEY = "rejudge:";
     String QUESTION_ACCEPT_KEY = "question:accept:";
     String QUESTION_FAIL_KEY = "question:fail:";
+    String USER_RANK_KEY = "rank:accept:";
 }
