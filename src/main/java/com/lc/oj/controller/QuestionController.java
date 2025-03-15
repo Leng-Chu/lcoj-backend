@@ -295,8 +295,9 @@ public class QuestionController {
         long size = questionQueryRequest.getPageSize();
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
-        Page<Question> questionPage = questionService.page(new Page<>(current, size),
-                questionService.getQueryWrapper(questionQueryRequest));
+        QueryWrapper<Question> queryWrapper = questionService.getQueryWrapper(questionQueryRequest);
+        queryWrapper.select("id", "num", "title", "tags", "submitNum", "acceptedNum");
+        Page<Question> questionPage = questionService.page(new Page<>(current, size), queryWrapper);
         Page<QuestionListVO> questionVOPage = questionService.getQuestionVOPage(questionPage);
         final User loginUser = userService.getLoginUserPermitNull(request);
         if (loginUser != null) {
@@ -332,8 +333,9 @@ public class QuestionController {
         long size = questionQueryRequest.getPageSize();
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
-        Page<Question> questionPage = questionService.page(new Page<>(current, size),
-                questionService.getQueryWrapper(questionQueryRequest));
+        QueryWrapper<Question> queryWrapper = questionService.getQueryWrapper(questionQueryRequest);
+        queryWrapper.select("id", "num", "title", "tags", "submitNum", "acceptedNum", "userId", "userName", "createTime", "updateTime");
+        Page<Question> questionPage = questionService.page(new Page<>(current, size), queryWrapper);
         return ResultUtils.success(questionService.getQuestionManageVOPage(questionPage));
     }
 

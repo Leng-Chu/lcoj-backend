@@ -1,6 +1,7 @@
 package com.lc.oj.controller;
 
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lc.oj.annotation.AuthCheck;
@@ -83,8 +84,9 @@ public class QuestionSubmitController {
         long current = questionSubmitQueryRequest.getCurrent();
         long size = questionSubmitQueryRequest.getPageSize();
         // 从数据库中查询原始的题目提交分页信息
-        Page<QuestionSubmit> questionSubmitPage = questionSubmitService.page(new Page<>(current, size),
-                questionSubmitService.getQueryWrapper(questionSubmitQueryRequest));
+        QueryWrapper<QuestionSubmit> queryWrapper = questionSubmitService.getQueryWrapper(questionSubmitQueryRequest);
+        queryWrapper.select("id", "language", "code", "judgeResult", "maxTime", "maxMemory", "caseInfoList", "questionId", "questionNum", "questionTitle", "userId", "userName", "createTime");
+        Page<QuestionSubmit> questionSubmitPage = questionSubmitService.page(new Page<>(current, size), queryWrapper);
         final User loginUser = userService.getLoginUser(request);
         // 返回脱敏信息
         return ResultUtils.success(questionSubmitService.getQuestionSubmitVOPage(questionSubmitPage, loginUser));

@@ -135,7 +135,6 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         queryWrapper.like(StringUtils.isNotBlank(questionTitle), "questionTitle", questionTitle);
         queryWrapper.eq(ObjectUtils.isNotEmpty(questionNum), "questionNum", questionNum);
         queryWrapper.eq(JudgeResultEnum.getEnumByValue(judgeResult) != null, "judgeResult", judgeResult);
-        queryWrapper.eq("isDelete", false);
         queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
                 sortField);
         return queryWrapper;

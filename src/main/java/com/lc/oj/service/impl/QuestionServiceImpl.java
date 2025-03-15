@@ -77,7 +77,6 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         if (!add) {
             queryWrapper.ne("id", question.getId());
         }
-        queryWrapper.eq("isDelete", false);
         List<Question> questions = this.list(queryWrapper);
         if (questions != null && !questions.isEmpty()) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "题号重复");
@@ -112,7 +111,6 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
             }
         }
         queryWrapper.eq(ObjectUtils.isNotEmpty(num), "num", num);
-        queryWrapper.eq("isDelete", false);
         queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
                 sortField);
         return queryWrapper;
@@ -147,8 +145,6 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     @Override
     public Long getNextNum() {
         QueryWrapper<Question> queryWrapper = new QueryWrapper<>();
-        //找未逻辑删除的num最大值
-        queryWrapper.eq("isDelete", false);
         queryWrapper.select("MAX(num) as num");
         Question question = this.getOne(queryWrapper);
         return (question != null && question.getNum() != null) ? question.getNum() + 1 : 1L;

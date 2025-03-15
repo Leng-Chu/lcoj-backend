@@ -5,60 +5,70 @@ create database if not exists lcoj;
 use lcoj;
 
 -- 用户表
-create table if not exists user
+CREATE TABLE `user`
 (
-    id           bigint comment 'id' primary key,
-    userName     varchar(256)                           not null comment '昵称',
-    userPassword varchar(512)                           not null comment '密码',
-    userRole     varchar(256) default 'user'            not null comment '用户角色：user/admin/ban',
-    createTime   datetime     default CURRENT_TIMESTAMP not null comment '创建时间',
-    updateTime   datetime     default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
-    isDelete     tinyint      default 0                 not null comment '是否删除',
-    unique idx_userName (userName)
-) comment '用户' collate = utf8mb4_unicode_ci;
+    `id`           bigint                                  NOT NULL COMMENT 'id',
+    `userName`     varchar(256) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '昵称',
+    `userPassword` varchar(512) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '密码',
+    `userRole`     varchar(256) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'user' COMMENT '用户角色：user/admin/ban',
+    `createTime`   datetime                                NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updateTime`   datetime                                NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `isDelete`     tinyint                                 NOT NULL DEFAULT '0' COMMENT '是否删除',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `idx_userName` (`isDelete`, `userName`) USING BTREE
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='用户';
 
 -- 题目表
-create table if not exists question
+CREATE TABLE `question`
 (
-    id          bigint comment 'id' primary key,
-    num         bigint                             not null comment '题号',
-    title       varchar(512)                       not null comment '标题',
-    content     text                               not null comment '内容',
-    tags        varchar(1024)                      null comment '标签列表（json 数组）',
-    answer      text                               null comment '题目标程',
-    language    varchar(20)                        not null comment '标程语言',
-    submitNum   int      default 0                 not null comment '题目提交数',
-    acceptedNum int      default 0                 not null comment '题目通过数',
-    sampleCase  text                               null comment '样例（json 数组）',
-    judgeConfig text                               null comment '判题配置（json 对象）',
-    userId      bigint                             not null comment '创建用户id',
-    userName    varchar(256)                       not null comment '创建用户昵称',
-    createTime  datetime default CURRENT_TIMESTAMP not null comment '创建时间',
-    updateTime  datetime default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
-    isDelete    tinyint  default 0                 not null comment '是否删除',
-    index idx_userId (userId),
-    index idx_num (num)
-) comment '题目' collate = utf8mb4_unicode_ci;
+    `id`          bigint                                  NOT NULL COMMENT 'id',
+    `num`         bigint                                  NOT NULL COMMENT '题号',
+    `title`       varchar(512) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '标题',
+    `content`     text COLLATE utf8mb4_unicode_ci         NOT NULL COMMENT '内容',
+    `tags`        varchar(1024) COLLATE utf8mb4_unicode_ci         DEFAULT NULL COMMENT '标签列表（json 数组）',
+    `answer`      text COLLATE utf8mb4_unicode_ci COMMENT '题目标程',
+    `language`    varchar(20) COLLATE utf8mb4_unicode_ci  NOT NULL COMMENT '标程语言',
+    `submitNum`   int                                     NOT NULL DEFAULT '0' COMMENT '题目提交数',
+    `acceptedNum` int                                     NOT NULL DEFAULT '0' COMMENT '题目通过数',
+    `sampleCase`  text COLLATE utf8mb4_unicode_ci COMMENT '样例（json 数组）',
+    `judgeConfig` text COLLATE utf8mb4_unicode_ci COMMENT '判题配置（json 对象）',
+    `userId`      bigint                                  NOT NULL COMMENT '创建用户id',
+    `userName`    varchar(256) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '创建用户昵称',
+    `createTime`  datetime                                NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updateTime`  datetime                                NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `isDelete`    tinyint                                 NOT NULL DEFAULT '0' COMMENT '是否删除',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `idx_num` (`isDelete`, `num`) USING BTREE
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='题目';
 
 -- 题目提交表
-create table if not exists question_submit
+CREATE TABLE `question_submit`
 (
-    id            bigint comment 'id' primary key,
-    language      varchar(128)                       not null comment '编程语言',
-    code          text                               not null comment '用户代码',
-    judgeResult   int      default 0                 not null comment '判题结果（0 - 等待判题、1 - 通过题目、 2~6 - 未通过、7 - 系统错误、 8 - 无测评数据）',
-    maxTime       bigint                             null comment '最大耗时',
-    maxMemory     bigint                             null comment '最大内存',
-    caseInfoList  text                               null comment '每个点的判题信息（json 对象）',
-    questionId    bigint                             not null comment '题目id',
-    questionNum   bigint                             not null comment '题号',
-    questionTitle varchar(512)                       not null comment '题目标题',
-    userId        bigint                             not null comment '创建用户id',
-    userName      varchar(256)                       not null comment '创建用户昵称',
-    createTime    datetime default CURRENT_TIMESTAMP not null comment '创建时间',
-    updateTime    datetime default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
-    isDelete      tinyint  default 0                 not null comment '是否删除',
-    index idx_questionId (questionId),
-    index idx_userId (userId)
-) comment '题目提交';
+    `id`            bigint       NOT NULL COMMENT 'id',
+    `language`      varchar(128) NOT NULL COMMENT '编程语言',
+    `code`          text         NOT NULL COMMENT '用户代码',
+    `judgeResult`   int          NOT NULL DEFAULT '0' COMMENT '判题结果（0 - 等待判题、1 - 通过题目、 2~6 - 未通过、7 - 系统错误、 8 - 无测评数据）',
+    `maxTime`       bigint                DEFAULT NULL COMMENT '最大耗时',
+    `maxMemory`     bigint                DEFAULT NULL COMMENT '最大内存',
+    `caseInfoList`  text COMMENT '每个点的判题信息（json 对象）',
+    `questionId`    bigint       NOT NULL COMMENT '题目id',
+    `questionNum`   bigint       NOT NULL COMMENT '题号',
+    `questionTitle` varchar(512) NOT NULL COMMENT '题目标题',
+    `userId`        bigint       NOT NULL COMMENT '创建用户id',
+    `userName`      varchar(256) NOT NULL COMMENT '创建用户昵称',
+    `createTime`    datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updateTime`    datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `isDelete`      tinyint      NOT NULL DEFAULT '0' COMMENT '是否删除',
+    KEY `idx_userName` (`userName`) USING BTREE,
+    KEY `idx_language` (`language`, `createTime` DESC) USING BTREE,
+    KEY `idx_judgeResult` (`judgeResult`, `createTime` DESC) USING BTREE,
+    KEY `idx_num` (`questionNum`, `createTime` DESC) USING BTREE,
+    KEY `idx_delete` (`isDelete`, `createTime` DESC) USING BTREE
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci COMMENT ='题目提交';
 
