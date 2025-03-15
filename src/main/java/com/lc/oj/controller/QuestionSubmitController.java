@@ -22,6 +22,7 @@ import com.lc.oj.service.IQuestionSubmitService;
 import com.lc.oj.service.IUserService;
 import com.lc.oj.websocket.WebSocketServer;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -83,10 +84,16 @@ public class QuestionSubmitController {
                                                                          HttpServletRequest request) {
         long current = questionSubmitQueryRequest.getCurrent();
         long size = questionSubmitQueryRequest.getPageSize();
-        // 从数据库中查询原始的题目提交分页信息
         QueryWrapper<QuestionSubmit> queryWrapper = questionSubmitService.getQueryWrapper(questionSubmitQueryRequest);
-        queryWrapper.select("id", "language", "code", "judgeResult", "maxTime", "maxMemory", "caseInfoList", "questionId", "questionNum", "questionTitle", "userId", "userName", "createTime");
-        Page<QuestionSubmit> questionSubmitPage = questionSubmitService.page(new Page<>(current, size), queryWrapper);
+        Page<QuestionSubmit> questionSubmitPage;
+        if (queryWrapper == null) {
+            // 如果返回null，证明没有查询条件，可以走缓存
+            questionSubmitPage = questionSubmitService.getPageByCache(current, size);
+        } else {
+            // 从数据库中查询原始的题目提交分页信息
+            queryWrapper.select("id", "language", "code", "judgeResult", "maxTime", "maxMemory", "caseInfoList", "questionId", "questionNum", "questionTitle", "userId", "userName", "createTime");
+            questionSubmitPage = questionSubmitService.page(new Page<>(current, size), queryWrapper);
+        }
         final User loginUser = userService.getLoginUser(request);
         // 返回脱敏信息
         return ResultUtils.success(questionSubmitService.getQuestionSubmitVOPage(questionSubmitPage, loginUser));
@@ -99,6 +106,7 @@ public class QuestionSubmitController {
      * @return
      */
     @PostMapping("/rejudge")
+    @Transactional
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> rejudge(Long questionSubmitId) {
         if (questionSubmitId == null || questionSubmitId <= 0) {
@@ -108,7 +116,7 @@ public class QuestionSubmitController {
         if (questionSubmit == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
-        template.opsForValue().set(RedisConstant.REJUDGE_KEY + questionSubmitId, String.valueOf(questionSubmit.getJudgeResult()));
+        template.opsForValue().set(RedisConstant.SUBMIT_REJUDGE_KEY + questionSubmitId, String.valueOf(questionSubmit.getJudgeResult()));
         UpdateWrapper<QuestionSubmit> updateWrapper = new UpdateWrapper<>();
         updateWrapper.set("judgeResult", 0)
                 .set("maxTime", null)
@@ -117,6 +125,7 @@ public class QuestionSubmitController {
                 .eq("id", questionSubmitId);
         boolean b = questionSubmitService.update(updateWrapper);
         if (b) {
+            template.delete(RedisConstant.SUBMIT_CACHE_KEY + questionSubmitId);
             webSocketServer.sendToAllClient("更新提交记录: " + questionSubmitId);
             messageProducer.sendJudgeMessage(questionSubmitId);
         }

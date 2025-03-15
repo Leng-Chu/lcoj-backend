@@ -21,6 +21,7 @@ import com.lc.oj.model.vo.QuestionSubmitVO;
 import com.lc.oj.service.IQuestionService;
 import com.lc.oj.service.IQuestionSubmitService;
 import com.lc.oj.service.IUserService;
+import com.lc.oj.utils.CacheUtils;
 import com.lc.oj.utils.SqlUtils;
 import com.lc.oj.websocket.WebSocketServer;
 import org.apache.commons.lang3.ObjectUtils;
@@ -30,7 +31,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -56,6 +62,8 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
     private QuestionSubmitMapper questionSubmitMapper;
     @Resource
     private StringRedisTemplate template;
+    @Resource
+    private CacheUtils cacheUtils;
 
     /**
      * 提交题目
@@ -68,7 +76,7 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
     @Transactional
     public long doQuestionSubmit(QuestionSubmitAddRequest questionSubmitAddRequest, User loginUser) {
         // 校验该用户是否有正在评测的题目
-        String value = template.opsForValue().get(RedisConstant.QUESTION_SUBMIT_KEY + loginUser.getId());
+        String value = template.opsForValue().get(RedisConstant.SUBMIT_LOCK_KEY + loginUser.getId());
         if (StringUtils.isNotBlank(value)) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "您有正在评测的题目，请勿重复提交");
         }
@@ -80,12 +88,14 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         }
         long questionId = questionSubmitAddRequest.getQuestionId();
         // 判断实体是否存在，根据类别获取实体
-        Question question = questionService.getById(questionId);
+        Question question = cacheUtils.query(RedisConstant.QUESTION_CACHE_KEY, questionId, Question.class, x -> questionService.getById(x));
         if (question == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
+        // 更新题目提交数，然后删除缓存
         question.setSubmitNum(question.getSubmitNum() + 1);
         questionService.updateById(question);
+        template.delete(RedisConstant.QUESTION_CACHE_KEY + questionId);
         // 每个用户串行提交题目
         QuestionSubmit questionSubmit = new QuestionSubmit();
         questionSubmit.setUserId(loginUser.getId());
@@ -101,10 +111,14 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "数据插入失败");
         }
         Long questionSubmitId = questionSubmit.getId();
+        LocalDateTime createTime = questionSubmit.getCreateTime();
+        Instant instant = createTime.atZone(ZoneId.of("UTC")).toInstant();
+        long time = instant.getEpochSecond();
+        template.opsForZSet().add(RedisConstant.SUBMIT_LIST_KEY, String.valueOf(questionSubmit.getId()), time);
         webSocketServer.sendToAllClient("添加提交记录: " + questionSubmitId);
         messageProducer.sendJudgeMessage(questionSubmitId);
-        // 设置提交记录的有效期为 60 秒
-        template.opsForValue().set(RedisConstant.QUESTION_SUBMIT_KEY + loginUser.getId(), String.valueOf(questionSubmitId), 60, TimeUnit.SECONDS);
+        // 设置提交锁的有效期为 60 秒
+        template.opsForValue().set(RedisConstant.SUBMIT_LOCK_KEY + loginUser.getId(), String.valueOf(questionSubmitId), 60, TimeUnit.SECONDS);
         return questionSubmitId;
     }
 
@@ -119,7 +133,7 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
     public QueryWrapper<QuestionSubmit> getQueryWrapper(QuestionSubmitQueryRequest questionSubmitQueryRequest) {
         QueryWrapper<QuestionSubmit> queryWrapper = new QueryWrapper<>();
         if (questionSubmitQueryRequest == null) {
-            return queryWrapper;
+            return null;
         }
         String language = questionSubmitQueryRequest.getLanguage();
         Integer judgeResult = questionSubmitQueryRequest.getJudgeResult();
@@ -128,7 +142,9 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         String userName = questionSubmitQueryRequest.getUserName();
         String sortField = questionSubmitQueryRequest.getSortField();
         String sortOrder = questionSubmitQueryRequest.getSortOrder();
-
+        if (StringUtils.isAllBlank(language, questionTitle, userName) && ObjectUtils.isEmpty(judgeResult) && ObjectUtils.isEmpty(questionNum)) {
+            return null;
+        }
         // 拼接查询条件
         queryWrapper.eq(StringUtils.isNotBlank(language), "language", language);
         queryWrapper.like(StringUtils.isNotBlank(userName), "userName", userName);
@@ -176,5 +192,30 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
     @Override
     public QuestionSubmitCountVO countQuestionSubmissions(String userName) {
         return questionSubmitMapper.countQuestionSubmissions(userName);
+    }
+
+    /**
+     * 获取题目提交分页（缓存）
+     *
+     * @param current
+     * @param size
+     * @return
+     */
+    @Override
+    public Page<QuestionSubmit> getPageByCache(long current, long size) {
+        Page<QuestionSubmit> questionSubmitPage = new Page<>(current, size);
+        int x = (int) ((current - 1) * size);
+        int y = (int) (current * size - 1);
+        Set<String> set = template.opsForZSet().reverseRange(RedisConstant.SUBMIT_LIST_KEY, x, y);
+        List<QuestionSubmit> questionSubmitList = new ArrayList<>();
+        for (String strId : set) {
+            Long id = Long.parseLong(strId);
+            QuestionSubmit questionSubmit =
+                    cacheUtils.query(RedisConstant.SUBMIT_CACHE_KEY, id, QuestionSubmit.class, this::getById);
+            questionSubmitList.add(questionSubmit);
+        }
+        questionSubmitPage.setRecords(questionSubmitList);
+        questionSubmitPage.setTotal(template.opsForZSet().zCard(RedisConstant.SUBMIT_LIST_KEY));
+        return questionSubmitPage;
     }
 }

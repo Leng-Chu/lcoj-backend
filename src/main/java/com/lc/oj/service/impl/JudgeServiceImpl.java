@@ -76,16 +76,18 @@ public class JudgeServiceImpl implements IJudgeService {
         if (!update) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "判题结果更新失败");
         }
+        // 更新后删除缓存
+        template.delete(RedisConstant.SUBMIT_CACHE_KEY + questionSubmit.getId());
         webSocketServer.sendToAllClient("更新提交记录: " + questionSubmit.getId());
         // 4）使用redis存储每个人通过的题目集合，删掉redis中的提交记录
-        template.opsForValue().getOperations().delete(RedisConstant.QUESTION_SUBMIT_KEY + questionSubmit.getUserId());
+        template.delete(RedisConstant.SUBMIT_LOCK_KEY + questionSubmit.getUserId());
         String acceptKey = RedisConstant.QUESTION_ACCEPT_KEY + questionSubmit.getUserName();
         String failKey = RedisConstant.QUESTION_FAIL_KEY + questionSubmit.getUserName();
-        String rejudge = template.opsForValue().get(RedisConstant.REJUDGE_KEY + questionSubmit.getId());
+        String rejudge = template.opsForValue().get(RedisConstant.SUBMIT_REJUDGE_KEY + questionSubmit.getId());
         Integer oldResult = null;
         if (rejudge != null) {
             oldResult = Integer.parseInt(rejudge);
-            template.opsForValue().getOperations().delete(RedisConstant.REJUDGE_KEY + questionSubmit.getId());
+            template.delete(RedisConstant.SUBMIT_REJUDGE_KEY + questionSubmit.getId());
         }
         if (Objects.equals(strategyResponse.getJudgeResult(), JudgeResultEnum.ACCEPTED.getValue())) {
             if (oldResult == null || !oldResult.equals(JudgeResultEnum.ACCEPTED.getValue())) {
@@ -93,6 +95,7 @@ public class JudgeServiceImpl implements IJudgeService {
                 question.setAcceptedNum(question.getAcceptedNum() + 1);
             }
             questionService.updateById(question);
+            template.delete(RedisConstant.QUESTION_CACHE_KEY + question.getId());
             // 设置这道题为通过，并从失败集合中删除
             template.opsForSet().add(acceptKey, question.getId().toString());
             template.opsForSet().remove(failKey, question.getId().toString());
@@ -101,6 +104,7 @@ public class JudgeServiceImpl implements IJudgeService {
                 // 重判时，如果之前通过了，现在没通过，那么通过数-1
                 question.setAcceptedNum(question.getAcceptedNum() - 1);
                 questionService.updateById(question);
+                template.delete(RedisConstant.QUESTION_CACHE_KEY + question.getId());
             }
             // 如果此人之前通过了这道题，那么忽略；否则，添加到失败集合
             if (Boolean.FALSE.equals(template.opsForSet().isMember(acceptKey, question.getId().toString()))) {

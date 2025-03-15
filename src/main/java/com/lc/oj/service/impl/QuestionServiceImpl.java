@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lc.oj.common.ErrorCode;
 import com.lc.oj.constant.CommonConstant;
+import com.lc.oj.constant.RedisConstant;
 import com.lc.oj.exception.BusinessException;
 import com.lc.oj.mapper.QuestionMapper;
 import com.lc.oj.model.dto.question.QuestionQueryRequest;
@@ -12,12 +13,19 @@ import com.lc.oj.model.entity.Question;
 import com.lc.oj.model.vo.QuestionListVO;
 import com.lc.oj.model.vo.QuestionManageVO;
 import com.lc.oj.service.IQuestionService;
+import com.lc.oj.utils.CacheUtils;
 import com.lc.oj.utils.SqlUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -30,6 +38,11 @@ import java.util.stream.Collectors;
  */
 @Service
 public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> implements IQuestionService {
+
+    @Resource
+    private StringRedisTemplate template;
+    @Resource
+    private CacheUtils cacheUtils;
 
     /**
      * 校验题目是否合法
@@ -73,7 +86,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         }
         //判断题号是否重复，已逻辑删除的题目不算
         QueryWrapper<Question> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("num", num);
+        queryWrapper.select("id").eq("num", num);
         if (!add) {
             queryWrapper.ne("id", question.getId());
         }
@@ -93,7 +106,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     public QueryWrapper<Question> getQueryWrapper(QuestionQueryRequest questionQueryRequest) {
         QueryWrapper<Question> queryWrapper = new QueryWrapper<>();
         if (questionQueryRequest == null) {
-            return queryWrapper;
+            return null;
         }
         Long num = questionQueryRequest.getNum();
         String title = questionQueryRequest.getTitle();
@@ -101,7 +114,9 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         String userName = questionQueryRequest.getUserName();
         String sortField = questionQueryRequest.getSortField();
         String sortOrder = questionQueryRequest.getSortOrder();
-
+        if (StringUtils.isAllBlank(title, userName) && ObjectUtils.isEmpty(num) && ObjectUtils.isEmpty(userName) && tags.isEmpty()) {
+            return null;
+        }
         // 拼接查询条件
         queryWrapper.like(StringUtils.isNotBlank(title), "title", title);
         queryWrapper.like(StringUtils.isNotBlank(userName), "userName", userName);
@@ -144,9 +159,63 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
 
     @Override
     public Long getNextNum() {
-        QueryWrapper<Question> queryWrapper = new QueryWrapper<>();
-        queryWrapper.select("MAX(num) as num");
-        Question question = this.getOne(queryWrapper);
-        return (question != null && question.getNum() != null) ? question.getNum() + 1 : 1L;
+        long nextNum = 1L;
+        Set<ZSetOperations.TypedTuple<String>> highestScoredElements =
+                template.opsForZSet().reverseRangeWithScores(RedisConstant.QUESTION_LIST_KEY, 0, 0);
+        if (highestScoredElements != null && !highestScoredElements.isEmpty()) {
+            ZSetOperations.TypedTuple<String> highestScoredElement = highestScoredElements.iterator().next();
+            nextNum = (long) (highestScoredElement.getScore() + 1);
+        }
+        return nextNum;
+    }
+
+    /**
+     * 从Redis中获取某个用户通过的题目或没通过的题目
+     *
+     * @param key
+     * @return
+     */
+    @Override
+    public List<Question> getQuestionList(String key) {
+        List<Question> questionList = new ArrayList<>();
+        Set<String> strIds = template.opsForSet().members(key);
+        if (strIds == null || strIds.isEmpty()) {
+            return questionList;
+        }
+        for (String strId : strIds) {
+            Long id = Long.valueOf(strId);
+            Double num = template.opsForZSet().score(RedisConstant.QUESTION_LIST_KEY, strId);
+            Question question = new Question();
+            question.setId(id);
+            if (num != null) {
+                question.setNum(num.longValue());
+            }
+            questionList.add(question);
+        }
+        questionList.sort(Comparator.comparing(Question::getNum));
+        return questionList;
+    }
+
+    /**
+     * 获取题目分页（缓存）
+     *
+     * @param current
+     * @param size
+     */
+    @Override
+    public Page<Question> getPageByCache(long current, long size) {
+        Page<Question> questionPage = new Page<>(current, size);
+        int x = (int) ((current - 1) * size);
+        int y = (int) (current * size - 1);
+        Set<String> set = template.opsForZSet().range(RedisConstant.QUESTION_LIST_KEY, x, y);
+        List<Question> questionList = new ArrayList<>();
+        for (String strId : set) {
+            Long id = Long.parseLong(strId);
+            Question question = cacheUtils.query(RedisConstant.QUESTION_CACHE_KEY, id, Question.class, this::getById);
+            questionList.add(question);
+        }
+        questionPage.setRecords(questionList);
+        questionPage.setTotal(template.opsForZSet().zCard(RedisConstant.QUESTION_LIST_KEY));
+        return questionPage;
     }
 }

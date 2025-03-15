@@ -61,4 +61,13 @@ public interface IQuestionSubmitService extends IService<QuestionSubmit> {
      * @return
      */
     QuestionSubmitCountVO countQuestionSubmissions(String userName);
+
+    /**
+     * 获取题目提交分页（缓存）
+     *
+     * @param current
+     * @param size
+     * @return
+     */
+    Page<QuestionSubmit> getPageByCache(long current, long size);
 }

@@ -25,6 +25,7 @@ import com.lc.oj.service.IJudgeService;
 import com.lc.oj.service.IQuestionService;
 import com.lc.oj.service.IQuestionSubmitService;
 import com.lc.oj.service.IUserService;
+import com.lc.oj.utils.CacheUtils;
 import com.lc.oj.utils.FileUtils;
 import com.lc.oj.websocket.WebSocketServer;
 import lombok.extern.slf4j.Slf4j;
@@ -37,11 +38,8 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -68,27 +66,28 @@ public class QuestionController {
     private StringRedisTemplate template;
     @Resource
     private WebSocketServer webSocketServer;
+    @Resource
+    private CacheUtils cacheUtils;
     @Value("${lcoj.judge.data-path}")
     private String dataPath;
 
 
-    /**
-     * 创建（仅管理员）
-     *
-     * @param questionAdminAddRequest
-     * @return
-     */
-    @PostMapping("/admin/add")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Long> adminAddQuestion(@RequestBody QuestionAdminAddRequest questionAdminAddRequest) {
-        Question question = new Question();
-        BeanUtils.copyProperties(questionAdminAddRequest, question);
-        boolean result = questionService.save(question);
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "插入数据库失败");
-        long newQuestionId = question.getId();
-        return ResultUtils.success(newQuestionId);
-    }
-
+//    /**
+//     * 创建（仅管理员）
+//     *
+//     * @param questionAdminAddRequest
+//     * @return
+//     */
+//    @PostMapping("/admin/add")
+//    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+//    public BaseResponse<Long> adminAddQuestion(@RequestBody QuestionAdminAddRequest questionAdminAddRequest) {
+//        Question question = new Question();
+//        BeanUtils.copyProperties(questionAdminAddRequest, question);
+//        boolean result = questionService.save(question);
+//        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "插入数据库失败");
+//        long newQuestionId = question.getId();
+//        return ResultUtils.success(newQuestionId);
+//    }
 
     /**
      * 创建
@@ -131,6 +130,7 @@ public class QuestionController {
                 throw new BusinessException(ErrorCode.OPERATION_ERROR);
             }
         }
+        template.opsForZSet().add(RedisConstant.QUESTION_LIST_KEY, String.valueOf(newQuestionId), question.getNum());
         return ResultUtils.success(newQuestionId);
     }
 
@@ -156,12 +156,19 @@ public class QuestionController {
         if (!oldQuestion.getUserId().equals(user.getId()) && !userService.isAdmin(request)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
-        // 删除题目
+        // 删除数据库和缓存中的题目
         boolean b = questionService.removeById(id);
+        template.delete(RedisConstant.QUESTION_CACHE_KEY + id);
+        template.opsForZSet().remove(RedisConstant.QUESTION_LIST_KEY, String.valueOf(id));
         // 删除提交记录
         QueryWrapper<QuestionSubmit> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("questionId", id);
+        queryWrapper.eq("questionId", id).select("id");
+        List<QuestionSubmit> list = questionSubmitService.list(queryWrapper);
         questionSubmitService.remove(queryWrapper);
+        for (QuestionSubmit questionSubmit : list) {
+            template.delete(RedisConstant.SUBMIT_CACHE_KEY + questionSubmit.getId());
+            template.opsForZSet().remove(RedisConstant.SUBMIT_LIST_KEY, String.valueOf(questionSubmit.getId()));
+        }
         webSocketServer.sendToAllClient("删除题目: " + id);
         // 删除数据文件夹
         File dir = new File(dataPath + oldQuestion.getNum());
@@ -214,10 +221,12 @@ public class QuestionController {
                 questionSubmit.setQuestionNum(question.getNum());
                 questionSubmit.setQuestionTitle(question.getTitle());
                 questionSubmitService.updateById(questionSubmit);
+                template.delete(RedisConstant.SUBMIT_CACHE_KEY + questionSubmit.getId());
                 webSocketServer.sendToAllClient("更新提交记录: " + questionSubmit.getId());
+                // 删除提交记录缓存
             }
         }
-        //将旧文件夹改名为新文件夹
+        //将旧文件夹改名为新文件夹，并修改zset中的值
         if (!Objects.equals(oldQuestion.getNum(), question.getNum())) {
             File oldDir = new File(dataPath + oldQuestion.getNum());
             File newDir = new File(dataPath + question.getNum());
@@ -227,7 +236,10 @@ public class QuestionController {
                     throw new BusinessException(ErrorCode.OPERATION_ERROR);
                 }
             }
+            template.opsForZSet().add(RedisConstant.QUESTION_LIST_KEY, String.valueOf(id), question.getNum());
         }
+        // 先更新题目，再删除缓存
+        template.delete(RedisConstant.QUESTION_CACHE_KEY + id);
         return ResultUtils.success(result);
     }
 
@@ -242,7 +254,7 @@ public class QuestionController {
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        Question question = questionService.getById(id);
+        Question question = cacheUtils.query(RedisConstant.QUESTION_CACHE_KEY, id, Question.class, x -> questionService.getById(x));
         if (question == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
@@ -265,7 +277,7 @@ public class QuestionController {
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        Question question = questionService.getById(id);
+        Question question = cacheUtils.query(RedisConstant.QUESTION_CACHE_KEY, id, Question.class, x -> questionService.getById(x));
         if (question == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
@@ -295,9 +307,14 @@ public class QuestionController {
         long size = questionQueryRequest.getPageSize();
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+        Page<Question> questionPage;
         QueryWrapper<Question> queryWrapper = questionService.getQueryWrapper(questionQueryRequest);
-        queryWrapper.select("id", "num", "title", "tags", "submitNum", "acceptedNum");
-        Page<Question> questionPage = questionService.page(new Page<>(current, size), queryWrapper);
+        if (queryWrapper == null) {
+            questionPage = questionService.getPageByCache(current, size);
+        } else {
+            queryWrapper.select("id", "num", "title", "tags", "submitNum", "acceptedNum");
+            questionPage = questionService.page(new Page<>(current, size), queryWrapper);
+        }
         Page<QuestionListVO> questionVOPage = questionService.getQuestionVOPage(questionPage);
         final User loginUser = userService.getLoginUserPermitNull(request);
         if (loginUser != null) {
@@ -333,9 +350,14 @@ public class QuestionController {
         long size = questionQueryRequest.getPageSize();
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+        Page<Question> questionPage;
         QueryWrapper<Question> queryWrapper = questionService.getQueryWrapper(questionQueryRequest);
-        queryWrapper.select("id", "num", "title", "tags", "submitNum", "acceptedNum", "userId", "userName", "createTime", "updateTime");
-        Page<Question> questionPage = questionService.page(new Page<>(current, size), queryWrapper);
+        if (queryWrapper == null) {
+            questionPage = questionService.getPageByCache(current, size);
+        } else {
+            queryWrapper.select("id", "num", "title", "tags", "submitNum", "acceptedNum", "userId", "userName", "createTime", "updateTime");
+            questionPage = questionService.page(new Page<>(current, size), queryWrapper);
+        }
         return ResultUtils.success(questionService.getQuestionManageVOPage(questionPage));
     }
 
@@ -361,8 +383,7 @@ public class QuestionController {
         if (num == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        Thread thread = new Thread(() -> judgeService.createOutput(num));
-        thread.start();
+        new Thread(() -> judgeService.createOutput(num)).start();
         return ResultUtils.success(true);
     }
 
@@ -375,16 +396,7 @@ public class QuestionController {
     @GetMapping("/accept")
     public BaseResponse<List<Question>> getAcceptQuestion(String userName) {
         String acceptKey = RedisConstant.QUESTION_ACCEPT_KEY + userName;
-        Set<String> strIds = template.opsForSet().members(acceptKey);
-        if (strIds == null || strIds.isEmpty()) {
-            return ResultUtils.success(new ArrayList<>());
-        } else {
-            Set<Long> ids = strIds.stream().map(Long::valueOf).collect(Collectors.toSet());
-            QueryWrapper<Question> queryWrapper = new QueryWrapper<>();
-            queryWrapper.select("id", "num").in("id", ids).orderByAsc("num");
-            List<Question> questionList = questionService.list(queryWrapper);
-            return ResultUtils.success(questionList);
-        }
+        return ResultUtils.success(questionService.getQuestionList(acceptKey));
     }
 
     /**
@@ -396,15 +408,7 @@ public class QuestionController {
     @GetMapping("/fail")
     public BaseResponse<List<Question>> getFailQuestion(String userName) {
         String failKey = RedisConstant.QUESTION_FAIL_KEY + userName;
-        Set<String> strIds = template.opsForSet().members(failKey);
-        if (strIds == null || strIds.isEmpty()) {
-            return ResultUtils.success(new ArrayList<>());
-        } else {
-            Set<Long> ids = strIds.stream().map(Long::valueOf).collect(Collectors.toSet());
-            QueryWrapper<Question> queryWrapper = new QueryWrapper<>();
-            queryWrapper.select("id", "num").in("id", ids).orderByAsc("num");
-            List<Question> questionList = questionService.list(queryWrapper);
-            return ResultUtils.success(questionList);
-        }
+        return ResultUtils.success(questionService.getQuestionList(failKey));
     }
+
 }
