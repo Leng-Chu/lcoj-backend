@@ -1,5 +1,6 @@
 package com.lc.oj.service.impl;
 
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -15,6 +16,7 @@ import com.lc.oj.model.vo.QuestionManageVO;
 import com.lc.oj.service.IQuestionService;
 import com.lc.oj.utils.CacheUtils;
 import com.lc.oj.utils.SqlUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -37,6 +39,7 @@ import java.util.stream.Collectors;
  * @since 2024-12-27
  */
 @Service
+@Slf4j
 public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> implements IQuestionService {
 
     @Resource
@@ -207,12 +210,25 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         Page<Question> questionPage = new Page<>(current, size);
         int x = (int) ((current - 1) * size);
         int y = (int) (current * size - 1);
-        Set<String> set = template.opsForZSet().range(RedisConstant.QUESTION_LIST_KEY, x, y);
+        List<String> idList = new ArrayList<>(template.opsForZSet().range(RedisConstant.QUESTION_LIST_KEY, x, y));
+        List<String> keyList = new ArrayList<>(idList);
+        keyList.replaceAll(s -> RedisConstant.QUESTION_CACHE_KEY + s);
+        List<String> jsonList = template.opsForValue().multiGet(keyList);
         List<Question> questionList = new ArrayList<>();
-        for (String strId : set) {
-            Long id = Long.parseLong(strId);
-            Question question = cacheUtils.query(RedisConstant.QUESTION_CACHE_KEY, id, Question.class, this::getById);
+        int cnt = 0;
+        for (int i = 0; i < jsonList.size(); i++) {
+            Question question;
+            if (jsonList.get(i) == null) {
+                Long id = Long.parseLong(idList.get(i));
+                question = cacheUtils.query(RedisConstant.QUESTION_CACHE_KEY, id, Question.class, this::getById);
+            } else {
+                question = JSONUtil.toBean(jsonList.get(i), Question.class);
+                cnt++;
+            }
             questionList.add(question);
+        }
+        if (cnt != 0) {
+            log.info("缓存批量查询成功，cnt={}", cnt);
         }
         questionPage.setRecords(questionList);
         questionPage.setTotal(template.opsForZSet().zCard(RedisConstant.QUESTION_LIST_KEY));

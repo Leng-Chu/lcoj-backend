@@ -1,5 +1,6 @@
 package com.lc.oj.service.impl;
 
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -24,6 +25,7 @@ import com.lc.oj.service.IUserService;
 import com.lc.oj.utils.CacheUtils;
 import com.lc.oj.utils.SqlUtils;
 import com.lc.oj.websocket.WebSocketServer;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -36,7 +38,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -49,6 +50,7 @@ import java.util.stream.Collectors;
  * @since 2024-12-27
  */
 @Service
+@Slf4j
 public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper, QuestionSubmit> implements IQuestionSubmitService {
     @Resource
     private IQuestionService questionService;
@@ -111,7 +113,7 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "数据插入失败");
         }
         Long questionSubmitId = questionSubmit.getId();
-        LocalDateTime createTime = questionSubmit.getCreateTime();
+        LocalDateTime createTime = LocalDateTime.now();
         Instant instant = createTime.atZone(ZoneId.of("UTC")).toInstant();
         long time = instant.getEpochSecond();
         template.opsForZSet().add(RedisConstant.SUBMIT_LIST_KEY, String.valueOf(questionSubmit.getId()), time);
@@ -206,13 +208,26 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         Page<QuestionSubmit> questionSubmitPage = new Page<>(current, size);
         int x = (int) ((current - 1) * size);
         int y = (int) (current * size - 1);
-        Set<String> set = template.opsForZSet().reverseRange(RedisConstant.SUBMIT_LIST_KEY, x, y);
+        List<String> idList = new ArrayList<>(template.opsForZSet().reverseRange(RedisConstant.SUBMIT_LIST_KEY, x, y));
+        List<String> keyList = new ArrayList<>(idList);
+        keyList.replaceAll(s -> RedisConstant.SUBMIT_CACHE_KEY + s);
+        List<String> jsonList = template.opsForValue().multiGet(keyList);
         List<QuestionSubmit> questionSubmitList = new ArrayList<>();
-        for (String strId : set) {
-            Long id = Long.parseLong(strId);
-            QuestionSubmit questionSubmit =
-                    cacheUtils.query(RedisConstant.SUBMIT_CACHE_KEY, id, QuestionSubmit.class, this::getById);
+        int cnt = 0;
+        for (int i = 0; i < jsonList.size(); i++) {
+            QuestionSubmit questionSubmit;
+            if (jsonList.get(i) == null) {
+                Long id = Long.parseLong(idList.get(i));
+                questionSubmit =
+                        cacheUtils.query(RedisConstant.SUBMIT_CACHE_KEY, id, QuestionSubmit.class, this::getById);
+            } else {
+                questionSubmit = JSONUtil.toBean(jsonList.get(i), QuestionSubmit.class);
+                cnt++;
+            }
             questionSubmitList.add(questionSubmit);
+        }
+        if (cnt != 0) {
+            log.info("缓存批量查询成功，cnt={}", cnt);
         }
         questionSubmitPage.setRecords(questionSubmitList);
         questionSubmitPage.setTotal(template.opsForZSet().zCard(RedisConstant.SUBMIT_LIST_KEY));
