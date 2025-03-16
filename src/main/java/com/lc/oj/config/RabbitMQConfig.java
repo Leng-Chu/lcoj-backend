@@ -17,7 +17,7 @@ public class RabbitMQConfig {
 
     @Bean
     public DirectExchange judgeExchange() {
-        return new DirectExchange("judgeExchange");
+        return new DirectExchange("judgeExchange", true, false);
     }
 
     @Bean

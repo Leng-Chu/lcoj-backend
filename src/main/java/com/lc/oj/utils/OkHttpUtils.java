@@ -18,7 +18,7 @@ public class OkHttpUtils {
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
 
-    public static String get(String url, Headers headers) throws IOException {
+    public static String get(String url, Headers headers) throws Exception {
         Request request = new Request.Builder()
                 .url(url)
                 .headers(headers)
@@ -27,7 +27,7 @@ public class OkHttpUtils {
         return getString(request);
     }
 
-    public static String post(String url, String json, Headers headers) throws IOException {
+    public static String post(String url, String json, Headers headers) throws Exception {
         RequestBody body = RequestBody.create(JSON, json);
         headers.newBuilder().add("Content-Type", "application/json");
         //打印格式化的json
@@ -41,7 +41,7 @@ public class OkHttpUtils {
         return getString(request);
     }
 
-    private static String getString(Request request) throws IOException {
+    private static String getString(Request request) throws Exception {
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
                 if (response.code() == 429 || response.code() == 401) {

@@ -23,14 +23,14 @@ import java.util.concurrent.*;
 @Component("normal")
 public class NormalStrategy extends BaseStrategyAbstract {
 
-    ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    ExecutorService executorService = Executors.newFixedThreadPool(10);
 
     public NormalStrategy(JudgeProperties judgeProperties) {
         super(judgeProperties);
     }
 
     @Override
-    protected void loadData(List<String> inputList, List<String> outputList, File[] files) throws Exception {
+    protected void loadData(List<String> inputList, List<String> outputList, File[] files) {
         //遍历dir文件夹中的所有.in文件，并找到同名的.out或.ans文件，如果.out和.ans都存在，优先使用.out文件
         for (File inputFile : files) {
             if (!inputFile.isFile() || !inputFile.getName().endsWith(".in")) continue;
@@ -56,9 +56,9 @@ public class NormalStrategy extends BaseStrategyAbstract {
         }
     }
 
-    // 多线程并行评测所有数据
+    // 多线程并发评测所有数据
     @Override
-    protected List<CaseInfo> doJudgeAll(StrategyRequest strategyRequest, List<String> inputList, List<String> outputList) throws Exception {
+    protected List<CaseInfo> doJudgeAll(StrategyRequest strategyRequest, List<String> inputList, List<String> outputList) {
         String code = strategyRequest.getCode();
         String language = strategyRequest.getLanguage();
         JudgeConfig judgeConfig = strategyRequest.getJudgeConfig();
@@ -79,28 +79,27 @@ public class NormalStrategy extends BaseStrategyAbstract {
                 try {
                     return doJudgeOnce(codeSandboxRequest, index, false);
                 } catch (Exception e) {
-                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "评测失败: " + e);
+                    throw new RuntimeException(e.getMessage());
                 }
             }, executorService);
             futures.add(future);
         }
-        // 等待所有评测完成，限时60s
-        CompletableFuture<Void> allFutures = CompletableFuture.allOf(
-                futures.toArray(new CompletableFuture[0]));
         try {
-            allFutures.get(60, TimeUnit.SECONDS);
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .orTimeout(60, TimeUnit.SECONDS) // 总的判题时间不超过60秒
+                    .join();
         } catch (Exception e) {
-            // 如果超时或有一个线程抛异常，取消所有未完成的评测
-            for (CompletableFuture<CaseInfo> future : futures) {
-                future.cancel(true);
-            }
-            if (e instanceof TimeoutException) {
+            // 如果超时或有线程抛异常，中断所有线程
+            executorService.shutdownNow();
+            if (e instanceof CompletionException && e.getCause() instanceof TimeoutException) {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "评测超时");
-            } else throw e;
+            } else {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "评测失败: " + e.getCause().getMessage());
+            }
         }
-        // 如果没有异常，获取所有评测结果
+        // 正常退出，收集判题结果
         for (CompletableFuture<CaseInfo> future : futures) {
-            caseInfoList.add(future.get());
+            caseInfoList.add(future.join());
         }
         caseInfoList.sort(Comparator.comparing(CaseInfo::getCaseId));
         return caseInfoList;

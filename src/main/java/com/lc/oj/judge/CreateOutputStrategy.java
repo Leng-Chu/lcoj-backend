@@ -25,7 +25,7 @@ import java.util.concurrent.*;
 @Component("output")
 public class CreateOutputStrategy extends BaseStrategyAbstract {
 
-    ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    ExecutorService executorService = Executors.newFixedThreadPool(10);
 
     public CreateOutputStrategy(JudgeProperties judgeProperties) {
         super(judgeProperties);
@@ -51,17 +51,17 @@ public class CreateOutputStrategy extends BaseStrategyAbstract {
         }
     }
 
-    // 多线程并行造输出数据
+    // 多线程并发造输出数据
     @Override
     protected List<CaseInfo> doJudgeAll(StrategyRequest strategyRequest, List<String> inputList, List<String> outputList) throws Exception {
         String code = strategyRequest.getCode();
         String language = strategyRequest.getLanguage();
         JudgeConfig judgeConfig = strategyRequest.getJudgeConfig();
         List<CaseInfo> caseInfoList = new ArrayList<>();
-        List<Future<CaseInfo>> futures = new ArrayList<>();
+        List<CompletableFuture<CaseInfo>> futures = new ArrayList<>();
         for (int i = 0; i < inputList.size(); i++) {
             final int index = i;
-            Callable<CaseInfo> task = () -> {
+            CompletableFuture<CaseInfo> future = CompletableFuture.supplyAsync(() -> {
                 CodeSandboxRequest codeSandboxRequest = CodeSandboxRequest.builder()
                         .source_code(code)
                         .language_id(languageId.get(language))
@@ -70,13 +70,30 @@ public class CreateOutputStrategy extends BaseStrategyAbstract {
                         .memory_limit(judgeConfig.getMemoryLimit() * 1024)
                         .stdin(inputList.get(index))
                         .build();
-                return doJudgeOnce(codeSandboxRequest, index, true);
-            };
-            futures.add(executorService.submit(task));
+                try {
+                    return doJudgeOnce(codeSandboxRequest, index, true);
+                } catch (Exception e) {
+                    throw new RuntimeException(e.getMessage());
+                }
+            }, executorService);
+            futures.add(future);
         }
-        for (Future<CaseInfo> future : futures) {
-            CaseInfo caseInfo = future.get(20, TimeUnit.SECONDS);
-            caseInfoList.add(caseInfo);
+        try {
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .orTimeout(60 * 2, TimeUnit.SECONDS) // 总的判题时间不超过60*2秒
+                    .join();
+        } catch (Exception e) {
+            // 如果超时或有线程抛异常，中断所有线程
+            executorService.shutdownNow();
+            if (e instanceof CompletionException && e.getCause() instanceof TimeoutException) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "评测超时");
+            } else {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "评测失败: " + e.getCause().getMessage());
+            }
+        }
+        // 正常退出，收集判题结果
+        for (CompletableFuture<CaseInfo> future : futures) {
+            caseInfoList.add(future.join());
         }
         caseInfoList.sort(Comparator.comparing(CaseInfo::getCaseId));
         for (CaseInfo caseInfo : caseInfoList) {

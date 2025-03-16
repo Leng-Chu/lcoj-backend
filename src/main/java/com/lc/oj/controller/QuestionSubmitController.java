@@ -16,6 +16,7 @@ import com.lc.oj.model.dto.questionsubmit.QuestionSubmitAddRequest;
 import com.lc.oj.model.dto.questionsubmit.QuestionSubmitQueryRequest;
 import com.lc.oj.model.entity.QuestionSubmit;
 import com.lc.oj.model.entity.User;
+import com.lc.oj.model.enums.JudgeResultEnum;
 import com.lc.oj.model.vo.QuestionSubmitCountVO;
 import com.lc.oj.model.vo.QuestionSubmitVO;
 import com.lc.oj.service.IQuestionSubmitService;
@@ -118,7 +119,7 @@ public class QuestionSubmitController {
         }
         template.opsForValue().set(RedisConstant.SUBMIT_REJUDGE_KEY + questionSubmitId, String.valueOf(questionSubmit.getJudgeResult()));
         UpdateWrapper<QuestionSubmit> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.set("judgeResult", 0)
+        updateWrapper.set("judgeResult", JudgeResultEnum.WAITING.getValue())
                 .set("maxTime", null)
                 .set("maxMemory", null)
                 .set("caseInfoList", "[]")

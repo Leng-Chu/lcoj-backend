@@ -7,7 +7,6 @@ import com.lc.oj.model.dto.question.QuestionQueryRequest;
 import com.lc.oj.model.entity.Question;
 import com.lc.oj.model.vo.QuestionListVO;
 import com.lc.oj.model.vo.QuestionManageVO;
-import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -74,5 +73,5 @@ public interface IQuestionService extends IService<Question> {
      * @param size
      * @return
      */
-    Page<Question> getPageByCache(@Param("current") long current, @Param("size") long size);
+    Page<Question> getPageByCache(long current, long size);
 }
