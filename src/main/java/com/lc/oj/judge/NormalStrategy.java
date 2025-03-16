@@ -1,6 +1,7 @@
 package com.lc.oj.judge;
 
 import com.lc.oj.common.ErrorCode;
+import com.lc.oj.constant.StrategyConstant;
 import com.lc.oj.exception.BusinessException;
 import com.lc.oj.model.dto.judge.CaseInfo;
 import com.lc.oj.model.dto.judge.CodeSandboxRequest;
@@ -20,7 +21,7 @@ import java.util.List;
 import java.util.concurrent.*;
 
 @Slf4j
-@Component("normal")
+@Component(StrategyConstant.NORMAL)
 public class NormalStrategy extends BaseStrategyAbstract {
 
     ExecutorService executorService = Executors.newFixedThreadPool(10);

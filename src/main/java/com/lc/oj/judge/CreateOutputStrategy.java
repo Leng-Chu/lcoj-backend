@@ -1,6 +1,7 @@
 package com.lc.oj.judge;
 
 import com.lc.oj.common.ErrorCode;
+import com.lc.oj.constant.StrategyConstant;
 import com.lc.oj.exception.BusinessException;
 import com.lc.oj.model.dto.judge.CaseInfo;
 import com.lc.oj.model.dto.judge.CodeSandboxRequest;
@@ -22,7 +23,7 @@ import java.util.Objects;
 import java.util.concurrent.*;
 
 @Slf4j
-@Component("output")
+@Component(StrategyConstant.CREATE_OUTPUT)
 public class CreateOutputStrategy extends BaseStrategyAbstract {
 
     ExecutorService executorService = Executors.newFixedThreadPool(10);

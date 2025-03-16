@@ -4,6 +4,7 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.lc.oj.common.ErrorCode;
 import com.lc.oj.constant.RedisConstant;
+import com.lc.oj.constant.StrategyConstant;
 import com.lc.oj.exception.BusinessException;
 import com.lc.oj.judge.JudgeStrategy;
 import com.lc.oj.judge.JudgeStrategySelector;
@@ -56,7 +57,7 @@ public class JudgeServiceImpl implements IJudgeService {
                 .build();
         // 2）执行判题，普通判题策略
         StrategyResponse strategyResponse;
-        JudgeStrategy judgeStrategy = judgeStrategySelector.select("normal");
+        JudgeStrategy judgeStrategy = judgeStrategySelector.select(StrategyConstant.NORMAL);
         if (judgeStrategy == null) {
             strategyResponse = new StrategyResponse();
             strategyResponse.setJudgeResult(JudgeResultEnum.SYSTEM_ERROR.getValue());
@@ -165,7 +166,7 @@ public class JudgeServiceImpl implements IJudgeService {
                 .judgeConfig(JSONUtil.toBean(question.getJudgeConfig(), JudgeConfig.class))
                 .build();
         webSocketServer.sendToSpecificClients("等待生成输出数据", strNum);
-        JudgeStrategy judgeStrategy = judgeStrategySelector.select("output");
+        JudgeStrategy judgeStrategy = judgeStrategySelector.select(StrategyConstant.CREATE_OUTPUT);
         if (judgeStrategy == null) {
             webSocketServer.sendToSpecificClients("系统错误，生成输出数据失败", strNum);
         } else {
