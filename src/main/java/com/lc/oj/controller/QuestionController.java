@@ -122,6 +122,7 @@ public class QuestionController {
         boolean result = questionService.save(question);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "插入数据库失败");
         long newQuestionId = question.getId();
+        cacheUtils.addQuestionIdToBloomFilter(newQuestionId);
         File dir = new File(dataPath + question.getNum());
         // 创建文件夹
         if (!dir.exists()) {
