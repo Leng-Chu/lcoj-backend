@@ -3,13 +3,20 @@ package com.lc.oj.utils;
 import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.google.common.hash.BloomFilter;
+import com.google.common.hash.Funnels;
 import com.lc.oj.constant.RedisConstant;
+import com.lc.oj.model.entity.Question;
+import com.lc.oj.service.IQuestionService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -20,10 +27,24 @@ import static com.lc.oj.constant.RedisConstant.LOCK_TTL;
 public class CacheUtils {
 
     @Resource
-    private BloomFilter<String> questionFilter;
-    @Resource
     private StringRedisTemplate template;
+    @Resource
+    private IQuestionService questionService;
+    private BloomFilter<String> questionFilter;
 
+
+    @PostConstruct
+    public void init() {
+        questionFilter = BloomFilter.create(Funnels.stringFunnel(StandardCharsets.UTF_8), 100000, 0.01);
+        QueryWrapper<Question> queryWrapper = new QueryWrapper<>();
+        queryWrapper.select("id");
+        List<Question> questions = questionService.list(queryWrapper);
+        if (questions != null) {
+            for (Question q : questions) {
+                questionFilter.put(String.valueOf(q.getId()));
+            }
+        }
+    }
 
     private boolean tryLock(String key) {
         Boolean flag = template.opsForValue().setIfAbsent(key, "lock", LOCK_TTL, TimeUnit.SECONDS);
