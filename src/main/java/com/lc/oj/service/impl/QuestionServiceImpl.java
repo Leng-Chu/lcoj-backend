@@ -109,7 +109,8 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     public QueryWrapper<Question> getQueryWrapper(QuestionQueryRequest questionQueryRequest) {
         QueryWrapper<Question> queryWrapper = new QueryWrapper<>();
         if (questionQueryRequest == null) {
-            return null;
+            //return null;
+            return queryWrapper;
         }
         Long num = questionQueryRequest.getNum();
         String title = questionQueryRequest.getTitle();
@@ -117,9 +118,9 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         String userName = questionQueryRequest.getUserName();
         String sortField = questionQueryRequest.getSortField();
         String sortOrder = questionQueryRequest.getSortOrder();
-        if (StringUtils.isAllBlank(title, userName) && ObjectUtils.isEmpty(num) && ObjectUtils.isEmpty(userName) && tags.isEmpty()) {
-            return null;
-        }
+//        if (StringUtils.isAllBlank(title, userName) && ObjectUtils.isEmpty(num) && ObjectUtils.isEmpty(userName) && tags.isEmpty()) {
+//            return null;
+//        }
         // 拼接查询条件
         queryWrapper.like(StringUtils.isNotBlank(title), "title", title);
         queryWrapper.like(StringUtils.isNotBlank(userName), "userName", userName);

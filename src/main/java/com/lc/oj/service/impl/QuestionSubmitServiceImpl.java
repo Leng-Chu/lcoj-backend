@@ -135,7 +135,8 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
     public QueryWrapper<QuestionSubmit> getQueryWrapper(QuestionSubmitQueryRequest questionSubmitQueryRequest) {
         QueryWrapper<QuestionSubmit> queryWrapper = new QueryWrapper<>();
         if (questionSubmitQueryRequest == null) {
-            return null;
+            // return null;
+            return queryWrapper;
         }
         String language = questionSubmitQueryRequest.getLanguage();
         Integer judgeResult = questionSubmitQueryRequest.getJudgeResult();
@@ -144,9 +145,9 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         String userName = questionSubmitQueryRequest.getUserName();
         String sortField = questionSubmitQueryRequest.getSortField();
         String sortOrder = questionSubmitQueryRequest.getSortOrder();
-        if (StringUtils.isAllBlank(language, questionTitle, userName) && ObjectUtils.isEmpty(judgeResult) && ObjectUtils.isEmpty(questionNum)) {
-            return null;
-        }
+//        if (StringUtils.isAllBlank(language, questionTitle, userName) && ObjectUtils.isEmpty(judgeResult) && ObjectUtils.isEmpty(questionNum)) {
+//            return null;
+//        }
         // 拼接查询条件
         queryWrapper.eq(StringUtils.isNotBlank(language), "language", language);
         queryWrapper.like(StringUtils.isNotBlank(userName), "userName", userName);
