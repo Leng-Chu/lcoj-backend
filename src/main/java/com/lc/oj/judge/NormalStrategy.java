@@ -24,8 +24,6 @@ import java.util.concurrent.*;
 @Component(StrategyConstant.NORMAL)
 public class NormalStrategy extends BaseStrategyAbstract {
 
-    ExecutorService executorService = Executors.newFixedThreadPool(10);
-
     public NormalStrategy(JudgeProperties judgeProperties) {
         super(judgeProperties);
     }
@@ -60,6 +58,7 @@ public class NormalStrategy extends BaseStrategyAbstract {
     // 多线程并发评测所有数据
     @Override
     protected List<CaseInfo> doJudgeAll(StrategyRequest strategyRequest, List<String> inputList, List<String> outputList) {
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
         String code = strategyRequest.getCode();
         String language = strategyRequest.getLanguage();
         JudgeConfig judgeConfig = strategyRequest.getJudgeConfig();
@@ -80,6 +79,7 @@ public class NormalStrategy extends BaseStrategyAbstract {
                 try {
                     return doJudgeOnce(codeSandboxRequest, index, false);
                 } catch (Exception e) {
+                    executorService.shutdownNow();// 如果有线程抛异常，中断所有线程
                     throw new RuntimeException(e.getMessage());
                 }
             }, executorService);
@@ -90,9 +90,8 @@ public class NormalStrategy extends BaseStrategyAbstract {
                     .orTimeout(60, TimeUnit.SECONDS) // 总的判题时间不超过60秒
                     .join();
         } catch (Exception e) {
-            // 如果超时或有线程抛异常，中断所有线程
-            executorService.shutdownNow();
             if (e instanceof CompletionException && e.getCause() instanceof TimeoutException) {
+                executorService.shutdownNow(); // 如果超时，中断所有线程
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "评测超时");
             } else {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "评测失败: " + e.getCause().getMessage());

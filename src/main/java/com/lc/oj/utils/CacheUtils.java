@@ -46,6 +46,10 @@ public class CacheUtils {
         }
     }
 
+    public void addQuestionIdToBloomFilter(Long questionId) {
+        questionFilter.put(String.valueOf(questionId));
+    }
+
     private boolean tryLock(String key) {
         Boolean flag = template.opsForValue().setIfAbsent(key, "lock", LOCK_TTL, TimeUnit.SECONDS);
         return BooleanUtil.isTrue(flag);

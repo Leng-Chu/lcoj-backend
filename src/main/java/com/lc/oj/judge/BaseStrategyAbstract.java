@@ -23,8 +23,8 @@ public abstract class BaseStrategyAbstract implements JudgeStrategy {
 
 
     // 只显示前10个测试点的数据，数据长度不超过1000个字符
-    protected static final int MAX_CASE = 10;
-    protected static final int MAX_LENGTH = 1000;
+    private static final int MAX_CASE = 10;
+    private static final int MAX_LENGTH = 1000;
     protected final Map<String, Integer> languageId = new HashMap<>(3);
     protected final Map<String, String> compilerOptions = new HashMap<>(3);
     private final String dataPath;
