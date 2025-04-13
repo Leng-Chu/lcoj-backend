@@ -57,8 +57,14 @@ public class NormalStrategy extends BaseStrategyAbstract {
 
     // 多线程并发评测所有数据
     @Override
-    protected List<CaseInfo> doJudgeAll(StrategyRequest strategyRequest, List<String> inputList, List<String> outputList) {
-        ExecutorService executorService = Executors.newFixedThreadPool(10);
+    protected List<CaseInfo> doJudgeAll(StrategyRequest strategyRequest, List<String> inputList, List<String> outputList) throws Exception {
+        ExecutorService executorService = new ThreadPoolExecutor(
+                5,
+                5,
+                0L,
+                TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>()
+        );
         String code = strategyRequest.getCode();
         String language = strategyRequest.getLanguage();
         JudgeConfig judgeConfig = strategyRequest.getJudgeConfig();

@@ -23,7 +23,6 @@ import com.lc.oj.service.IQuestionSubmitService;
 import com.lc.oj.service.IUserService;
 import com.lc.oj.websocket.WebSocketServer;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -107,7 +106,6 @@ public class QuestionSubmitController {
      * @return
      */
     @PostMapping("/rejudge")
-    @Transactional
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> rejudge(Long questionSubmitId) {
         if (questionSubmitId == null || questionSubmitId <= 0) {

@@ -53,7 +53,13 @@ public class CreateOutputStrategy extends BaseStrategyAbstract {
     // 多线程并发造输出数据
     @Override
     protected List<CaseInfo> doJudgeAll(StrategyRequest strategyRequest, List<String> inputList, List<String> outputList) throws Exception {
-        ExecutorService executorService = Executors.newFixedThreadPool(10);
+        ExecutorService executorService = new ThreadPoolExecutor(
+                5,
+                5,
+                0L,
+                TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>()
+        );
         String code = strategyRequest.getCode();
         String language = strategyRequest.getLanguage();
         JudgeConfig judgeConfig = strategyRequest.getJudgeConfig();

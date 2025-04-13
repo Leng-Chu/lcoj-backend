@@ -111,6 +111,10 @@ public abstract class BaseStrategyAbstract implements JudgeStrategy {
 
     // 调用代码沙箱对某一组数据进行判题
     protected CaseInfo doJudgeOnce(CodeSandboxRequest codeSandboxRequest, int caseId, boolean needOutput) throws Exception {
+        if (!Objects.equals(codeSandboxRequest.getLanguage_id(), languageId.get("cpp"))) {
+            codeSandboxRequest.setCpu_time_limit(codeSandboxRequest.getCpu_time_limit() * 2);
+            codeSandboxRequest.setMemory_limit(codeSandboxRequest.getMemory_limit() * 2);
+        }
         String tokenStr = null;
         String key = null;
         for (String k : xRapidapiKey) {

@@ -159,13 +159,19 @@ public class QuestionController {
         }
         // 删除数据库和缓存中的题目
         boolean b = questionService.removeById(id);
-        template.delete(RedisConstant.QUESTION_CACHE_KEY + id);
-        template.opsForZSet().remove(RedisConstant.QUESTION_LIST_KEY, String.valueOf(id));
+        if (!b) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "删除题目失败");
+        }
         // 删除提交记录
         QueryWrapper<QuestionSubmit> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("questionId", id).select("id");
+        boolean remove = questionSubmitService.remove(queryWrapper);
+        if (!remove) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "删除提交记录失败");
+        }
         List<QuestionSubmit> list = questionSubmitService.list(queryWrapper);
-        questionSubmitService.remove(queryWrapper);
+        template.delete(RedisConstant.QUESTION_CACHE_KEY + id);
+        template.opsForZSet().remove(RedisConstant.QUESTION_LIST_KEY, String.valueOf(id));
         for (QuestionSubmit questionSubmit : list) {
             template.delete(RedisConstant.SUBMIT_CACHE_KEY + questionSubmit.getId());
             template.opsForZSet().remove(RedisConstant.SUBMIT_LIST_KEY, String.valueOf(questionSubmit.getId()));
@@ -278,9 +284,9 @@ public class QuestionController {
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        Question question = cacheUtils.query(RedisConstant.QUESTION_CACHE_KEY, id, Question.class, x -> questionService.getById(x));
-        //Question question = questionService.getById(id);
-        //加入缓存将平均响应时间从212ms优化至124ms
+        //Question question = cacheUtils.query(RedisConstant.QUESTION_CACHE_KEY, id, Question.class, x -> questionService.getById(x));
+        Question question = questionService.getById(id);
+        //加入缓存将高并发下的平均响应时间从212ms优化至124ms
         if (question == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }

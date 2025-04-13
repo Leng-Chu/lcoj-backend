@@ -96,8 +96,10 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         }
         // 更新题目提交数，然后删除缓存
         question.setSubmitNum(question.getSubmitNum() + 1);
-        questionService.updateById(question);
-        template.delete(RedisConstant.QUESTION_CACHE_KEY + questionId);
+        boolean b = questionService.updateById(question);
+        if (!b) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "数据更新失败");
+        }
         // 每个用户串行提交题目
         QuestionSubmit questionSubmit = new QuestionSubmit();
         questionSubmit.setUserId(loginUser.getId());
@@ -112,6 +114,7 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         if (!save) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "数据插入失败");
         }
+        template.delete(RedisConstant.QUESTION_CACHE_KEY + questionId);
         Long questionSubmitId = questionSubmit.getId();
         LocalDateTime createTime = LocalDateTime.now();
         Instant instant = createTime.atZone(ZoneId.of("UTC")).toInstant();
